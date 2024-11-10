@@ -3,12 +3,12 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, name, email, password=None, birth_date=None, city=None, gender=None, **extra_fields):
-        if not name or not email : 
+    def create_user(self, user_name, email, password=None, birth_date=None, city=None, gender=None, **extra_fields):
+        if not user_name or not email : 
             raise ValueError('Users must have all fields') 
         email = self.normalize_email(email)
         user = self.model(
-            name=name,
+            user_name=user_name,
             email=email,
             birth_date=birth_date,
             city=city,
@@ -19,11 +19,11 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, name, email, password=None, birth_date=None, city=None, gender=None, **extra_fields):
+    def create_superuser(self, user_name, email, password=None, birth_date=None, city=None, gender=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
-        return self.create_user(name, email, password, birth_date, city, gender, **extra_fields)
+        return self.create_user(user_name, email, password, birth_date, city, gender, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
     female = 'Female'
@@ -33,7 +33,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('Male',male)
     ]
     user_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100)
+    user_name = models.CharField(max_length=100,unique=True,default='yourname')
     email = models.EmailField(max_length=100, unique=True)
     birth_date = models.DateField(blank=True, null=True)
     city = models.CharField(max_length=100,blank=True, null=True)
@@ -42,8 +42,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name', 'birth_date', 'city', 'gender']
+    USERNAME_FIELD = 'user_name'
+    REQUIRED_FIELDS = ['email', 'birth_date', 'city', 'gender']
 
     objects = CustomUserManager()
 

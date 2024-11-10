@@ -41,16 +41,16 @@ class UserLoginAPIView(APIView):
 	permission_classes = (AllowAny,)
 
 	def post(self, request):
-		email = request.data.get('email', None)
+		user_name = request.data.get('user_name', None)
 		user_password = request.data.get('password', None)
 
 		if not user_password:
 			raise AuthenticationFailed('A user password is needed.')
 
-		if not email:
-			raise AuthenticationFailed('An user email is needed.')
+		if not user_name:
+			raise AuthenticationFailed('An user user name is needed.')
 
-		user_instance = authenticate(username=email, password=user_password)
+		user_instance = authenticate(user_name=user_name, password=user_password)
 
 		if not user_instance:
 			raise AuthenticationFailed('User not found.')
