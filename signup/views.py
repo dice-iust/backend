@@ -35,22 +35,8 @@ class UserRegistrationAPIView(APIView):
 
 
 
-class UserLoginAPIView(APIView):
-	serializer_class = UserLoginSerializer
-	authentication_classes = (TokenAuthentication,)
-	permission_classes = (AllowAny,)
-
-	def post(self, request):
-		email = request.data.get('email', None)
-		user_password = request.data.get('password', None)
-
-		if not user_password:
-			raise AuthenticationFailed('A user password is needed.')
-
-		if not email:
-			raise AuthenticationFailed('An user email is needed.')
-
-		user_instance = authenticate(username=email, password=user_password)
+ 
+		user_instance = authenticate(username=user_name, password=user_password)
 
 		if not user_instance:
 			raise AuthenticationFailed('User not found.')

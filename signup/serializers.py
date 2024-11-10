@@ -13,7 +13,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["name", "email", "password"]
+        fields = ["user_name", "email", "password"]
 
     def create(self, validated_data):
 
@@ -35,7 +35,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserLoginSerializer(serializers.Serializer):
-    email = serializers.CharField(max_length=100)
+    user_name = serializers.CharField(max_length=100)
     password = serializers.CharField(
         max_length=100, min_length=8, style={"input_type": "password"}
     )
@@ -47,7 +47,7 @@ class UserViewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["name", "email", "password", "birth_date", "age", "city", "gender"]
+        fields = ["user_name", "email", "password", "birth_date", "age", "city", "gender"]
 
     def compute_age(self, obj):
         today = date.today()
