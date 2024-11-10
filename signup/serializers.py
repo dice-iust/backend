@@ -13,7 +13,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["name", "email", "password", "birth_date", "city", "gender"]
+        fields = ["name", "email", "password"]
 
     def create(self, validated_data):
 
@@ -52,9 +52,11 @@ class UserViewSerializer(serializers.ModelSerializer):
     def compute_age(self, obj):
         today = date.today()
         birth_date = obj.birth_date
-        age = (
-            today.year
-            - birth_date.year
-            - ((today.month, today.day) < (birth_date.month, birth_date.day))
-        )
-        return age
+        if birth_date!=None:
+            age = (
+                today.year
+                - birth_date.year
+                - ((today.month, today.day) < (birth_date.month, birth_date.day))
+            )
+            return age
+        return None

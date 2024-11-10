@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, name, email, password=None, birth_date=None, city=None, gender=None, **extra_fields):
-        if not name or not email or not birth_date or not city or not gender: 
+        if not name or not email : 
             raise ValueError('Users must have all fields') 
         email = self.normalize_email(email)
         user = self.model(
@@ -35,9 +35,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     email = models.EmailField(max_length=100, unique=True)
-    birth_date = models.DateField()
-    city = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10, choices=choice)
+    birth_date = models.DateField(blank=True, null=True)
+    city = models.CharField(max_length=100,blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=choice,blank=True,null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
