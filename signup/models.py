@@ -15,6 +15,7 @@ class CustomUserManager(BaseUserManager):
             birth_date=birth_date,
             city=city,
             gender=gender,
+            image_url=image_url,
             **extra_fields
         )
         user.set_password(password)
@@ -60,7 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = 'user_name'
-    REQUIRED_FIELDS = ['email', 'birth_date', 'city', 'gender']
+    REQUIRED_FIELDS = ['name','last_name','image_url','email', 'birth_date', 'city', 'gender']
 
     objects = CustomUserManager()
 
