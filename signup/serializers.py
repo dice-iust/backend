@@ -44,10 +44,10 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserViewSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField(method_name="compute_age")
-
+    image_url = serializers.ImageField(required=False)
     class Meta:
         model = User
-        fields = ["user_name", "email", "password", "birth_date", "age", "city", "gender"]
+        fields = ["image_url","name","last_name","user_name", "email", "password", "birth_date", "age", "city", "gender"]
 
     def compute_age(self, obj):
         today = date.today()
