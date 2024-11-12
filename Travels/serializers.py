@@ -1,20 +1,23 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from models import *
-from datetime import date
-import re
+from .models import Travel
 
 User = get_user_model()
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        Model = User
-        fields =['user_name']
-class TravelSerializers(serializers.ModelSerializer):
-    admin=UserSerializer()
-    photo=serializers.ImageField(required=None)
+        model = User
+        fields = ["user_name"]
+
+
+class TravelSerializer(serializers.ModelSerializer):
+    admin = UserSerializer()
+    photo = serializers.ImageField(required=False)
+
     class Meta:
-        Model = Travel
-        feilds = [
+        model = Travel
+        fields = [
             "admin",
             "name",
             "start_date",
@@ -23,5 +26,5 @@ class TravelSerializers(serializers.ModelSerializer):
             "destination",
             "transportation",
             "start_place",
-            "mode"
+            "mode",
         ]

@@ -23,9 +23,11 @@ class Travel(models.Model):
     admin=models.OneToOneField(User,on_delete=models.PROTECT)
     name = models.CharField(max_length=200)
     start_date = models.DateTimeField(auto_now_add=False)
-    photo = models.ImageField(upload_to="profiles")
+    photo = models.ImageField(upload_to="profiles",blank=True,)
     destination = models.CharField(max_length=200)
     mode=models.CharField(max_length=200,choices=type_choices)
     start_place=models.CharField(max_length=200)
-    transportation=models.charField(max_length=200,choices=trans_choices)
-    end_date=models.DateField(auto_now_add==False)
+    transportation=models.CharField(max_length=200,choices=trans_choices)
+    end_date=models.DateField(auto_now_add=False)   
+    def __str__(self):
+        return self.destination
