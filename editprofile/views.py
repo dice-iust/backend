@@ -1,16 +1,17 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from .serializers import UserProfileSerializer
-from rest_framework_simplejwt.authentication import JWTAuthentication
-
+from rest_framework.authentication import TokenAuthentication
+from .models import UserProfile
 class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
-
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (AllowAny,)
+    seializer_class = UserProfileSerializer
     def get(self, request):
-        serializer = UserProfileSerializer(request.user.userprofile)
+        users=UserProfile.objects.all()
+        serializer = UserProfileSerializer(users,many=True)
         return Response(serializer.data)
 
     def put(self, request):

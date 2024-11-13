@@ -1,25 +1,28 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from .models import UserProfile
 # from django.contrib.auth.hashers import check_password
 
 User = get_user_model()
+class Userserializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields=['email','user_name','password']
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    user=Userserializer()
     current_password = serializers.CharField(write_only=True, required=False)
     new_password = serializers.CharField(write_only=True, required=False)
     confirm_password = serializers.CharField(write_only=True, required=False)
-
-    user_name = serializers.CharField(source="user.user_name", read_only=True)
-    email = serializers.EmailField(source="user.email", read_only=True)
     first_name = serializers.CharField(source="user.first_name", read_only=True)
     last_name = serializers.CharField(source="user.last_name", read_only=True)
 
     class Meta:
-        model = User
+        model = UserProfile
         fields = [
-            'user_name', 'email', 'first_name', 'last_name', 'password',
+            'user', 'first_name', 'last_name', 
             'city', 'gender', 'birth_date', 'profile_picture',
             'current_password', 'new_password', 'confirm_password'
         ]
@@ -31,7 +34,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         current_password = data.get('current_password')
         new_password = data.get('new_password')
         confirm_password = data.get('confirm_password')
-
 
         if new_password or confirm_password:
             if not current_password:
