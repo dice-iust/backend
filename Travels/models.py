@@ -28,6 +28,6 @@ class Travel(models.Model):
     mode=models.CharField(max_length=200,choices=type_choices)
     start_place=models.CharField(max_length=200)
     transportation=models.CharField(max_length=200,choices=trans_choices)
-    end_date=models.DateField(auto_now_add=False)   
+    end_date=models.DateTimeField(auto_now_add=False)   
     def __str__(self):
         return self.destination
