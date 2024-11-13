@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+from rest_framework_simplejwt.settings import api_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,20 +27,24 @@ SECRET_KEY = "django-insecure-^t2!686ei!1!ow+)ms-5bdx1m*h@@!noyddg_i!ond#d+!m2l0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['DiceTravel.pythonanywhere.com','127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
-
+AUTH_USER_MODEL = 'signup.User'
 INSTALLED_APPS = [
+
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework","corsheaders",
+    "corsheaders",
     "signup",
+    "editprofile",
+    "rest_framework",
+    "rest_framework.authtoken",
 ]
 
 MIDDLEWARE = [
@@ -130,6 +136,13 @@ CORS_ORIGIN_ALLOW_ALL = True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),"DEFAULT_PERMISSION_CLASSES": ['rest_framework.permissions.AllowAny']
+    ),
+
+    "DEFAULT_PERMISSION_CLASSES": ['rest_framework.permissions.IsAuthenticated']
 }
-AUTH_USER_MODEL = 'signup.User'
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
