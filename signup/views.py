@@ -16,6 +16,8 @@ from django.contrib.auth import get_user_model
 import jwt
 from .generate import generate_access_token
 
+User = get_user_model()
+
 
 class UserRegistrationAPIView(APIView):
     serializer_class = UserRegistrationSerializer
@@ -29,6 +31,14 @@ class UserRegistrationAPIView(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
+            # Check if the user already exists
+            if User.objects.filter(
+                user_name=serializer.validated_data["user_name"]
+            ).exists():
+                return Response(
+                    {"error": "This user already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             new_user = serializer.save()
             if new_user:
                 access_token = generate_access_token(new_user)
