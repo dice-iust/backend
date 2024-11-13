@@ -44,7 +44,6 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserViewSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField(method_name="compute_age")
-
     class Meta:
         model = User
         fields = ["user_name", "email", "password", "birth_date", "age", "city", "gender"]
