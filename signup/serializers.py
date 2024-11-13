@@ -43,19 +43,19 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserViewSerializer(serializers.ModelSerializer):
-    age = serializers.SerializerMethodField(method_name="compute_age")
+    # age = serializers.SerializerMethodField(method_name="compute_age")
     class Meta:
         model = User
-        fields = ["user_name", "email", "password", "birth_date", "age", "city", "gender"]
+        fields = ["user_name", "email", "password"]
 
-    def compute_age(self, obj):
-        today = date.today()
-        birth_date = obj.birth_date
-        if birth_date!=None:
-            age = (
-                today.year
-                - birth_date.year
-                - ((today.month, today.day) < (birth_date.month, birth_date.day))
-            )
-            return age
-        return None
+    # def compute_age(self, obj):
+    #     today = date.today()
+    #     birth_date = obj.birth_date
+    #     if birth_date!=None:
+    #         age = (
+    #             today.year
+    #             - birth_date.year
+    #             - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    #         )
+    #         return age
+    #     return None
