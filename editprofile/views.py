@@ -10,8 +10,8 @@ class UserProfileView(APIView):
     permission_classes = (AllowAny,)
     seializer_class = UserProfileSerializer
     def get(self, request):
-        users=UserProfile.objects.all()
-        serializer = UserProfileSerializer(users,many=True)
+        all_users=UserProfile.objects.all()
+        serializer = UserProfileSerializer(all_users,many=True)
         return Response(serializer.data)
 
     def put(self, request):
