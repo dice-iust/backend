@@ -1,28 +1,26 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Travel
-from editprofile.models import UserProfile
+# from editprofile.models import UserProfile
 
 Users = get_user_model()
 
+class PhotoSerializer(serializers.ModelSerializer):  
+    phrofile_image = serializers.SerializerMethodField("get_image")
 
-class TravelUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
-        fields = ["user_name"]
+        fields = ["user_name", "phrofile_image"]
 
-class PhotoSerializer(serializers.ModelSerializer):
-    user = TravelUserSerializer()  
-    profile_picture = serializers.ImageField(required=False)
+    def get_image(self, obj):
+        if obj.profile_picture and hasattr(obj.profile_picture, "url"):
+            return self.context["request"].build_absolute_uri(obj.profile_picture.url)
+        return None  
 
-    class Meta:
-        model = UserProfile
-        fields = ["user", "profile_picture"]
 
 class TravelSerializer(serializers.ModelSerializer):
-    admin = PhotoSerializer()  
-    photo = serializers.ImageField(required=False)
-
+    admin = PhotoSerializer(context={"request": serializers.CurrentUserDefault()})
+    image_url = serializers.SerializerMethodField("get_image")
     class Meta:
         model = Travel
         fields = [
@@ -30,9 +28,12 @@ class TravelSerializer(serializers.ModelSerializer):
             "name",
             "start_date",
             "end_date",
-            "photo",
+            "image_url",
             "destination",
             "transportation",
             "start_place",
             "mode",
         ]
+
+    def get_image(self, obj):
+        return self.context["request"].build_absolute_uri(obj.photo.url)
