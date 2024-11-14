@@ -1,21 +1,28 @@
-from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated,AllowAny
-from .serializers import UserProfileSerializer
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-from .models import UserProfile
-class UserProfileView(APIView):
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = (AllowAny,)
-    seializer_class = UserProfileSerializer
+from .serializers import UserProfileUpdateSerializer
+
+class UserProfileUpdateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
     def get(self, request):
-        all_users=UserProfile.objects.all()
-        serializer = UserProfileSerializer(all_users,many=True)
-        return Response(serializer.data)
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = request.user
+        serializer = UserProfileUpdateSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
-        serializer = UserProfileSerializer(request.user.userprofile, data=request.data, partial=True)
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = request.user
+        serializer = UserProfileUpdateSerializer(user, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
