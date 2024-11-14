@@ -2,6 +2,7 @@ from django.db import models
 from signup.models import User
 from django.contrib.auth import get_user_model
 User = get_user_model()
+from editprofile.models import UserProfile
 
 class Travel(models.Model):
     type1='Budget-friendly'
@@ -20,7 +21,7 @@ class Travel(models.Model):
         ("Plane",trans3),
         ("Car",trans4)
     ]
-    admin=models.OneToOneField(User,on_delete=models.PROTECT)
+    admin=models.OneToOneField(UserProfile,on_delete=models.PROTECT)
     name = models.CharField(max_length=200)
     start_date = models.DateTimeField(auto_now_add=False)
     photo = models.ImageField(upload_to="profiles",blank=True,)
