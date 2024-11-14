@@ -79,7 +79,6 @@ class UserLoginAPIView(APIView):
             )
             response.data = {"access_token": user_access_token}
             return response
-
         return Response({"message": "Something went wrong."})
 
 
