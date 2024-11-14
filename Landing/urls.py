@@ -3,6 +3,7 @@ from .views import landing_page
 from django.conf.urls.static import static
 from django.conf import settings
 urlpatterns = [
+    
     path("home/",landing_page),
 ]
 if settings.DEBUG:

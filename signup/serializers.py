@@ -16,7 +16,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         fields = ["user_name", "email", "password"]
 
     def create(self, validated_data):
-
         user_password = validated_data.pop("password")
         if not user_password or len(user_password) < 6:
             raise serializers.ValidationError("Password must be at least 6 characters")
