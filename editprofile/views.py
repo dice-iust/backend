@@ -13,7 +13,6 @@ class UserProfileView(APIView):
         users=UserProfile.objects.all()
         serializer = UserProfileSerializer(users,many=True)
         return Response(serializer.data)
-
     def put(self, request):
         serializer = UserProfileSerializer(request.user.userprofile, data=request.data, partial=True)
         if serializer.is_valid():

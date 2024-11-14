@@ -4,5 +4,6 @@ class EditprofileConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'editprofile'
 
+
     def ready(self):
         import editprofile.signals

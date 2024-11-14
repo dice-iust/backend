@@ -46,6 +46,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         return data
 
+
     def update(self, instance, validated_data):
         instance.user_name = validated_data.get('user_name', instance.user_name)
         instance.email = validated_data.get('email', instance.email)

@@ -7,6 +7,7 @@ from django.conf import settings
 @permission_classes([AllowAny,])
 def landing_page(request):
     content = {
+        
         "text": "Start Your ADVENTURE Today !",
         "login_button": "Log In",
         "signup_button": "Sign UP",
