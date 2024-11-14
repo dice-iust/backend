@@ -15,7 +15,9 @@ class TravelView(APIView):
 
     def get(self, request):
         travels = Travel.objects.all()
-        travel_serializer = TravelSerializer(travels, many=True)
+        travel_serializer = TravelSerializer(
+            travels, many=True, context={"request": request}
+        )
         return Response(data=travel_serializer.data, status=status.HTTP_200_OK)
 
 class SingleTravelView(APIView):
@@ -26,8 +28,7 @@ class SingleTravelView(APIView):
         try:
             travel_get = Travel.objects.get(pk=pk)
         except Travel.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        
-        travel_serializer = TravelSerializer(travel_get)
-        return Response(data=travel_serializer.data, status=status.HTTP_200_OK)
+            return Response("this travel does not exists.",status=status.HTTP_404_NOT_FOUND)
 
+        travel_serializer = TravelSerializer(travel_get, context={"request": request})
+        return Response(data=travel_serializer.data, status=status.HTTP_200_OK)
