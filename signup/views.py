@@ -34,11 +34,34 @@ class UserRegistrationAPIView(APIView):
             # Check if the user already exists
             if User.objects.filter(
                 user_name=serializer.validated_data["user_name"]
-            ).exists():
+            ).exists() and not User.objects.filter(email=serializer.validated_data["email"]).exists():
                 return Response(
-                    {"error": "This user already exists."},
+                    {"error": "This username already exists."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            if (
+                User.objects.filter(email=serializer.validated_data["email"]).exists()
+                and not User.objects.filter(
+                    user_name=serializer.validated_data["user_name"]
+                ).exists()
+            ):
+                return Response(
+                    {"error": "This email already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                
+            if (
+                User.objects.filter(email=serializer.validated_data["email"]).exists()
+                and User.objects.filter(
+                    user_name=serializer.validated_data["user_name"]
+                ).exists()
+            ):
+                return Response(
+                    {"error": "This username and email already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             new_user = serializer.save()
             if new_user:
                 access_token = generate_access_token(new_user)
