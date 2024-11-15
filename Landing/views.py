@@ -16,7 +16,7 @@ def landing_page(request):
         "home": "Home",
         "about": "About",
         "logo_name": "Trip Tide",
-        "image_url": f"{settings.MEDIA_URL}landing/bus.jpg",
-        "logo_image_url": f"{settings.MEDIA_URL}landing/logo.jpg",
+        "image_url": f"{settings.MEDIA_URL}landing/bus.png",
+        "logo_image_url": f"{settings.MEDIA_URL}landing/logo.png",
     }
     return Response(content)
