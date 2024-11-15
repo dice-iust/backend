@@ -24,7 +24,8 @@ class TravelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Travel
         fields = [
-            "admin",  
+            "admin",
+            "travellers",
             "name",
             "start_date",
             "end_date",

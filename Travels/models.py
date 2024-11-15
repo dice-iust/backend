@@ -30,5 +30,6 @@ class Travel(models.Model):
     start_place=models.CharField(max_length=200)
     transportation=models.CharField(max_length=200,choices=trans_choices)
     end_date=models.DateTimeField(auto_now_add=False)   
+    travellers=models.IntegerField(blank=False,default=5)
     def __str__(self):
         return self.destination
