@@ -37,4 +37,6 @@ class TravelSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        return self.context["request"].build_absolute_uri(obj.photo.url)
+        if obj.photo and hasattr(obj.photo, "url"):
+            return self.context["request"].build_absolute_uri(obj.photo.url)
+        return None
