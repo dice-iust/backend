@@ -39,8 +39,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        new_password =validated_data.pop('new_password', None)
         if password:
-            instance.set_password(password)
+            instance.set_password(new_password)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

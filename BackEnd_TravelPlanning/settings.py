@@ -130,20 +130,17 @@ MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), 'mediafiles')
 MEDIA_URL = '/media/'
 
 
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ORIGIN_ALLOW_ALL = True
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),"DEFAULT_PERMISSION_CLASSES": ['rest_framework.permissions.AllowAny'],
- 
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
 
     ),
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
 }
 AUTH_USER_MODEL = 'signup.User'
