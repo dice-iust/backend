@@ -9,12 +9,12 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     current_password = serializers.CharField(write_only=True, required=False)
     new_password = serializers.CharField(write_only=True, required=False)
     confirm_password = serializers.CharField(write_only=True, required=False)
-    
+
     class Meta:
         model = User
         fields = [
             'first_name', 'last_name', 'city', 'user_name', 'profile_picture',
-            'gender', 'bio', 'email', 'password', 'current_password', 
+            'gender', 'bio', 'email', 'password', 'current_password',
             'new_password', 'confirm_password'
         ]
         extra_kwargs = {
@@ -38,13 +38,20 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
-        password = validated_data.pop('password', None)
-        new_password =validated_data.pop('new_password', None)
-        if password:
-            instance.set_password(new_password)
 
+        current_password = validated_data.get("current_password")
+        new_password = validated_data.get("new_password")
+        if new_password:
+            if new_password != current_password:
+                instance.set_password(new_password)
+            else:
+                raise serializers.ValidationError(
+                    "New password cannot be the same as the current password."
+                )
         for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            if attr not in ["current_password", "new_password", "confirm_password"]:
+                setattr(instance, attr, value)
+
 
         instance.save()
         return instance
