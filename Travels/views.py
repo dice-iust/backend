@@ -22,8 +22,15 @@ class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
-    filter_backends = (DjangoFilterBackend,)
-    search_fields = ["travellers"]
+    filter_backends = (DjangoFilterBackend, SearchFilter)
+    search_fields = [
+        "travellers",
+        "admin__user_name",
+        "mode",
+        "destination",
+        "transportation",
+        'start_place',
+    ]
     filterset_fields = ("travellers",'admin__user_name','mode')
 
 
