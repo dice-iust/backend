@@ -12,39 +12,21 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+from rest_framework import generics
 from django_filters import rest_framework as filters
-
 User = get_user_model()
 
 
-class TravelFilter(filters.FilterSet):
-    travellers = filters.NumberFilter(field_name="travellers", lookup_expr="exact")
-    admin = filters.CharFilter(field_name="admin__user_name", lookup_expr="icontains")
-    destination = filters.CharFilter(field_name="destination", lookup_expr='exact')
-    start_place = filters.CharFilter(field_name="start_place", lookup_expr='exact')
-    transportation = filters.CharFilter(field_name="transportation",lookup_expr='exact')
-    mode=filters.ChoiceFilter(field_name="mode")
-    class Meta:
-        model = Travel
-        fields = ["travellers","admin", "destination", "transportation",'mode']
-
-
-class AllTravels(ListAPIView):
+class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = TravelFilter
-    
-    def get(self,request):
-        querysets=Travel.objects.all()
-        serializer=TravelSerializer(querysets,many=True,context={"request": request})
-        return Response(data=serializer.data,status=status.HTTP_200_OK)
-    
-    
-    
-    
-    
+    search_fields = ["travellers"]
+    filterset_fields = ("travellers",'admin__user_name','mode')
+
+
 class TravelView(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
