@@ -33,7 +33,7 @@ class UserRegistrationAPIView(APIView):
         if serializer.is_valid(raise_exception=True):
             # Check if the user already exists
             if User.objects.filter(
-                user_name=serializer.validated_data["user_name"]
+                    username=serializer.validated_data["username"]
             ).exists() and not User.objects.filter(email=serializer.validated_data["email"]).exists():
                 return Response(
                     {"error": "This username already exists."},
@@ -41,24 +41,24 @@ class UserRegistrationAPIView(APIView):
                 )
 
             if (
-                User.objects.filter(email=serializer.validated_data["email"]).exists()
-                and not User.objects.filter(
-                    user_name=serializer.validated_data["user_name"]
-                ).exists()
+                    User.objects.filter(email=serializer.validated_data["email"]).exists()
+                    and not User.objects.filter(
+                username=serializer.validated_data["username"]
+            ).exists()
             ):
                 return Response(
                     {"error": "This email already exists."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-                
+
             if (
-                User.objects.filter(email=serializer.validated_data["email"]).exists()
-                and User.objects.filter(
-                    user_name=serializer.validated_data["user_name"]
-                ).exists()
+                    User.objects.filter(email=serializer.validated_data["email"]).exists()
+                    and User.objects.filter(
+                username=serializer.validated_data["username"]
+            ).exists()
             ):
                 return Response(
-                    {"error": "This username and email already exists."},
+                    {"error": "This username and email already exist."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -80,16 +80,16 @@ class UserLoginAPIView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        user_name = request.data.get("user_name", None)
+        username = request.data.get("username", None)
         user_password = request.data.get("password", None)
 
         if not user_password:
-            raise AuthenticationFailed("A user password is needed.")
+            raise AuthenticationFailed("A password is needed.")
 
-        if not user_name:
-            raise AuthenticationFailed("An user user name is needed.")
+        if not username:
+            raise AuthenticationFailed("A username is needed.")
 
-        user_instance = authenticate(username=user_name, password=user_password)
+        user_instance = authenticate(username=username, password=user_password)
 
         if not user_instance:
             raise AuthenticationFailed("User not found.")
