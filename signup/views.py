@@ -78,7 +78,11 @@ class UserLoginAPIView(APIView):
     serializer_class = UserLoginSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (AllowAny,)
-
+    def get(self, request):
+        photo_response = {
+            "photo": f"https://triptide.pythonanywhere{settings.MEDIA_URL}login.jpg"
+        }
+        return Response(photo_response)
     def post(self, request):
         user_name = request.data.get("user_name", None)
         user_password = request.data.get("password", None)
