@@ -10,14 +10,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         max_length=100, min_length=6, style={"input_type": "password"}
     )
+    confirm = serializers.CharField(max_length=100, min_length=6,style={"input_type":"password"})
 
     class Meta:
         model = User
-        fields = ["user_name", "email", "password"]
+        fields = ["user_name", "email", "password","confirm"]
 
     def create(self, validated_data):
-
         user_password = validated_data.pop("password")
+        validated_data.pop("confirm")
         if not user_password or len(user_password) < 6:
             raise serializers.ValidationError("Password must be at least 6 characters")
         if not re.search(r"[A-Za-z]", user_password):
@@ -32,6 +33,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(user_password)
         user.save()
         return user
+    def validate(self, data):
+        password = data.get('password')
+        confirm = data.get('confirm')
+        if not confirm:
+            return serializers.ValidationError("please enter confirm password")
+        if not password:
+            return serializers.ValidationError("please enter password")
+        if(password!=confirm):
+            raise serializers.ValidationError("password and confirm password are not equal")
+        else:
+            return data
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -43,19 +55,19 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserViewSerializer(serializers.ModelSerializer):
-    age = serializers.SerializerMethodField(method_name="compute_age")
+    # age = serializers.SerializerMethodField(method_name="compute_age")
     class Meta:
         model = User
-        fields = ["user_name", "email", "password", "birth_date", "age", "city", "gender"]
+        fields = ["user_name", "email", "password"]
 
-    def compute_age(self, obj):
-        today = date.today()
-        birth_date = obj.birth_date
-        if birth_date!=None:
-            age = (
-                today.year
-                - birth_date.year
-                - ((today.month, today.day) < (birth_date.month, birth_date.day))
-            )
-            return age
-        return None
+    # def compute_age(self, obj):
+    #     today = date.today()
+    #     birth_date = obj.birth_date
+    #     if birth_date!=None:
+    #         age = (
+    #             today.year
+    #             - birth_date.year
+    #             - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    #         )
+    #         return age
+    #     return None

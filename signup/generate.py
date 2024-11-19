@@ -8,5 +8,6 @@ def generate_access_token(user):
         'exp': datetime.utcnow() + timedelta(days=1),  # Token expiration in 1 day
         'iat': datetime.utcnow()
     }
+    
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
     return token

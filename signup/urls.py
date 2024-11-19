@@ -8,6 +8,7 @@ from signup.views import (
 from django.conf.urls.static import static
 from django.conf import settings
 urlpatterns = [
+    
 	path('user/register/', UserRegistrationAPIView.as_view()),
 	path('user/login/', UserLoginAPIView.as_view()),
 	path('user/', UserViewAPI.as_view()),
