@@ -4,65 +4,59 @@ from django.contrib.auth.password_validation import validate_password
 # from signup.models import UserProfile
 
 User = get_user_model()
-
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    # current_password = serializers.CharField(read_only=True, required=False)
-    # new_password = serializers.CharField(read_only=True, required=False)
-    # confirm_password = serializers.CharField(read_only=True, required=False)
-    current_password = serializers.CharField(
+    currentPassword = serializers.CharField(
         required=False,
         write_only=False,
         help_text="Enter your current password to validate the change."
     )
-    new_password = serializers.CharField(
+    newPassword = serializers.CharField(
         required=False,
         write_only=False,
         help_text="Enter your new password."
     )
-    confirm_password = serializers.CharField(
+    confirmPassword = serializers.CharField(
         required=False,
         write_only=False,
         help_text="Re-enter your new password to confirm it."
     )
-    
+
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'city', 'user_name', 'profile_picture',
-            'gender', 'bio', 'email', 'password', 'current_password', 
-            'new_password', 'confirm_password'
+            'firstName', 'lastName', 'city', 'username', 'profilePicture',
+            'gender', 'bio', 'email', 'phone', 'birthDate', 'password',
+            'currentPassword', 'newPassword', 'confirmPassword'
         ]
         extra_kwargs = {
             'password': {'write_only': True, 'required': False},
-
         }
 
     def validate(self, data):
-        current_password = data.get('current_password')
-        new_password = data.get('new_password')
-        confirm_password = data.get('confirm_password')
+        currentPassword = data.get('currentPassword')
+        newPassword = data.get('newPassword')
+        confirmPassword = data.get('confirmPassword')
 
-        if new_password or confirm_password:
-            if not current_password:
+        if newPassword or confirmPassword:
+            if not currentPassword:
                 raise serializers.ValidationError("Current password is required to set a new password.")
-            if not self.instance.check_password(current_password):
+            if not self.instance.check_password(currentPassword):
                 raise serializers.ValidationError("Current password is incorrect.")
-            if new_password != confirm_password:
+            if newPassword != confirmPassword:
                 raise serializers.ValidationError("New password and confirm password do not match.")
-            validate_password(new_password)
+            validate_password(newPassword)
 
         return data
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
-        new_password = validated_data.pop('new_password', None)
+        newPassword = validated_data.pop('newPassword', None)
 
-        if new_password:
-            instance.set_password(new_password)
+        if newPassword:
+            instance.set_password(newPassword)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
         instance.save()
         return instance
-

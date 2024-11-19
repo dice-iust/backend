@@ -23,22 +23,23 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(user_name, email, password,**extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
-
     user_id = models.AutoField(primary_key=True)
-    user_name = models.CharField(max_length=100,unique=True,default='yourname')
+    username = models.CharField(max_length=100, unique=True, default='yourname')
     email = models.EmailField(max_length=100, unique=True)
-    first_name = models.CharField(max_length=50, blank=True, null=True)
-    last_name = models.CharField(max_length=50, blank=True, null=True)
+    firstName = models.CharField(max_length=50, blank=True, null=True)
+    lastName = models.CharField(max_length=50, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    profilePicture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     gender = models.CharField(max_length=10, choices=(('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')),
                               blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
+    phone = models.CharField(max_length=15, blank=True, null=True)  # فیلد جدید
+    birthDate = models.DateField(blank=True, null=True)  # تاریخ تولد
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'user_name'
+    USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
 
     objects = CustomUserManager()
