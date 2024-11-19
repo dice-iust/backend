@@ -80,7 +80,7 @@ class UserLoginAPIView(APIView):
     permission_classes = (AllowAny,)
     def get(self, request):
         photo_response = {
-            "photo": f"https://triptide.pythonanywhere{settings.MEDIA_URL}login.jpg"
+            "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}login.jpg"
         }
         return Response(photo_response)
     def post(self, request):
