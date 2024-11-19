@@ -1,24 +1,40 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from .models import UserProfile
+from signup.models import UserProfile
 
 User = get_user_model()
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    current_password = serializers.CharField(write_only=True, required=False)
-    new_password = serializers.CharField(write_only=True, required=False)
-    confirm_password = serializers.CharField(write_only=True, required=False)
-
+    # current_password = serializers.CharField(read_only=True, required=False)
+    # new_password = serializers.CharField(read_only=True, required=False)
+    # confirm_password = serializers.CharField(read_only=True, required=False)
+    current_password = serializers.CharField(
+        required=False,
+        write_only=False,
+        help_text="Enter your current password to validate the change."
+    )
+    new_password = serializers.CharField(
+        required=False,
+        write_only=False,
+        help_text="Enter your new password."
+    )
+    confirm_password = serializers.CharField(
+        required=False,
+        write_only=False,
+        help_text="Re-enter your new password to confirm it."
+    )
+    
     class Meta:
         model = User
         fields = [
             'first_name', 'last_name', 'city', 'user_name', 'profile_picture',
-            'gender', 'bio', 'email', 'password', 'current_password',
+            'gender', 'bio', 'email', 'password', 'current_password', 
             'new_password', 'confirm_password'
         ]
         extra_kwargs = {
-            'password': {'write_only': True, 'required': False}
+            'password': {'write_only': True, 'required': False},
+
         }
 
     def validate(self, data):
@@ -38,20 +54,15 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        new_password = validated_data.pop('<PASSWORD>', None)
 
-        current_password = validated_data.get("current_password")
-        new_password = validated_data.get("new_password")
-        if new_password:
-            if new_password != current_password:
-                instance.set_password(new_password)
-            else:
-                raise serializers.ValidationError(
-                    "New password cannot be the same as the current password."
-                )
+        if password:
+            instance.set_password(new_password)
+
         for attr, value in validated_data.items():
-            if attr not in ["current_password", "new_password", "confirm_password"]:
-                setattr(instance, attr, value)
-
+            setattr(instance, attr, value)
 
         instance.save()
         return instance
+
