@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from signup.models import UserProfile
+# from signup.models import UserProfile
 
 User = get_user_model()
 
@@ -55,9 +55,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
-        new_password = validated_data.pop('<PASSWORD>', None)
+        new_password = validated_data.pop('new_password', None)
 
-        if password:
+        if new_password:
             instance.set_password(new_password)
 
         for attr, value in validated_data.items():
