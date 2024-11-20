@@ -1,3 +1,4 @@
+from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,10 +9,14 @@ import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from signup.generate import generate_access_token
-class UserProfileUpdateAPIView(APIView):
+from rest_framework.generics import GenericAPIView
+class UserProfileUpdateAPIView(GenericAPIView):
     authentication_classes = [TokenAuthentication]
-    serializer_classes = UserProfileUpdateSerializer
+    # serializer_classes = UserProfileUpdateSerializer
+    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
+    def get_serializer_class(self):
+        return UserProfileUpdateSerializer
     def get(self, request):
         user_token = request.COOKIES.get("access_token")
         if not user_token:
@@ -56,3 +61,4 @@ class UserProfileUpdateAPIView(APIView):
             return response
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
