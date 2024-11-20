@@ -13,8 +13,8 @@ class PhotoSerializer(serializers.ModelSerializer):
         fields = ["user_name", "phrofile_image"]
 
     def get_image(self, obj):
-        if obj.profile_picture and hasattr(obj.profile_picture, "url"):
-            return self.context["request"].build_absolute_uri(obj.profile_picture.url)
+        if obj.profilePicture and hasattr(obj.profilePicture, "url"):
+            return self.context["request"].build_absolute_uri(obj.profilePicture.url)
         return None  
 
 
