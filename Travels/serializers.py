@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Travel
+from .models import Travel,EmailAddress
 # from editprofile.models import UserProfile
 
 Users = get_user_model()
@@ -13,11 +13,17 @@ class PhotoSerializer(serializers.ModelSerializer):
         fields = ["user_name", "phrofile_image"]
 
     def get_image(self, obj):
-        if obj.profile_picture and hasattr(obj.profile_picture, "url"):
-            return self.context["request"].build_absolute_uri(obj.profile_picture.url)
+        if obj.profilePicture and hasattr(obj.profilePicture, "url"):
+            return self.context["request"].build_absolute_uri(obj.profilePicture.url)
         return None  
 
-
+class EmailSerializer(serializers.ModelSerializer):
+  
+    class Meta:
+        model = EmailAddress
+        fields = ("email_all",)
+        
+    
 class TravelSerializer(serializers.ModelSerializer):
     admin = PhotoSerializer(context={"request": serializers.CurrentUserDefault()})
     image_url = serializers.SerializerMethodField("get_image")

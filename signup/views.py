@@ -33,17 +33,17 @@ class UserRegistrationAPIView(APIView):
         if serializer.is_valid(raise_exception=True):
             # Check if the user already exists
             if User.objects.filter(
-                    username=serializer.validated_data["username"]
+                    user_name=serializer.validated_data["user_name"]
             ).exists() and not User.objects.filter(email=serializer.validated_data["email"]).exists():
                 return Response(
-                    {"error": "This username already exists."},
+                    {"error": "This user_name already exists."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if (
                     User.objects.filter(email=serializer.validated_data["email"]).exists()
                     and not User.objects.filter(
-                username=serializer.validated_data["username"]
+                user_name=serializer.validated_data["user_name"]
             ).exists()
             ):
                 return Response(
@@ -54,11 +54,11 @@ class UserRegistrationAPIView(APIView):
             if (
                     User.objects.filter(email=serializer.validated_data["email"]).exists()
                     and User.objects.filter(
-                username=serializer.validated_data["username"]
+                user_name=serializer.validated_data["user_name"]
             ).exists()
             ):
                 return Response(
-                    {"error": "This username and email already exist."},
+                    {"error": "This user_name and email already exist."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -78,18 +78,22 @@ class UserLoginAPIView(APIView):
     serializer_class = UserLoginSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (AllowAny,)
-
+    def get(self, request):
+        photo_response = {
+            "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}login.jpg"
+        }
+        return Response(photo_response)
     def post(self, request):
-        username = request.data.get("username", None)
+        user_name = request.data.get("user_name", None)
         user_password = request.data.get("password", None)
 
         if not user_password:
             raise AuthenticationFailed("A password is needed.")
 
-        if not username:
-            raise AuthenticationFailed("A username is needed.")
+        if not user_name:
+            raise AuthenticationFailed("A user_name is needed.")
 
-        user_instance = authenticate(username=username, password=user_password)
+        user_instance = authenticate(user_name=user_name, password=user_password)
 
         if not user_instance:
             raise AuthenticationFailed("User not found.")
