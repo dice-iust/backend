@@ -33,3 +33,10 @@ class Travel(models.Model):
     travellers=models.IntegerField(blank=False,default=5)
     def __str__(self):
         return self.destination
+
+
+class EmailAddress(models.Model):
+    email_all = models.EmailField(unique=True)
+
+    def __str__(self):
+        return self.email_all
