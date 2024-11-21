@@ -144,7 +144,7 @@ class TravelViewPopular(ListAPIView):
         queryset = Travel.objects.all()
         popular_travel = queryset.order_by("-travellers")[:15]
         context = {
-            "Popular Trips": TravelSerializer(
+            "Popular_Trips": TravelSerializer(
                 popular_travel, many=True, context={"request": self.request}
             ).data,
             "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",

@@ -33,8 +33,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     gender = models.CharField(max_length=10, choices=(('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')),
                               blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    phone = models.CharField(max_length=15, blank=True, null=True)  # فیلد جدید
-    birthDate = models.DateField(blank=True, null=True)  # تاریخ تولد
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    birthDate = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
