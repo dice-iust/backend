@@ -16,7 +16,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework import generics
 from django_filters import rest_framework as filters
 from django.conf import settings
-
+from rest_framework.parsers import MultiPartParser, FormParser
 User = get_user_model()
 
 
@@ -147,14 +147,17 @@ class TravelViewPopular(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
-
+    parser_classes = (MultiPartParser, FormParser)
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         popular_travel = queryset.order_by("-travellers")[:15]
-        context = {
-            "Popular_Trips": TravelSerializer(
+        travel_serializer = (
+            TravelSerializer(
                 popular_travel, many=True, context={"request": self.request}
-            ).data,
+            )
+        )
+        context = {
+            "Popular_Trips": travel_serializer.data,
             "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
             "photo_winter": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/WinterTrips.avif",
             "photo_autumn": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/AutumnTrips.avif",
@@ -164,7 +167,7 @@ class TravelViewPopular(ListAPIView):
             "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/UpcomingTrips.avif",
             "photo_short": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/ShortTrips.avif",
         }
-        return Response(data=context, status=status.HTTP_200_OK)
+        return Response(context, status=status.HTTP_200_OK)
 
     def post(self, request):
         email_serializer = EmailSerializer(data=request.data)
