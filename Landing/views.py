@@ -17,7 +17,7 @@ def landing_page(request):
         # "text3": "ADVENTURE",
         # "text4": "Today !",
         "login_button": "Login",
-        "signup_button": "SignuP",
+        "signup_button": "Signup",
         "paginate": "Let's Go ",
         "home": "Home",
         "about": "About",
