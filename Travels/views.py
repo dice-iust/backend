@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel
+from .models import Travel,EmailAddress
 from .serializers import TravelSerializer, EmailSerializer
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -172,7 +172,7 @@ class TravelViewPopular(ListAPIView):
             {
                 "id": "Spring",
                 "name": "Spring Trips",
-                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/SprintTrips.avif",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/SpringTrips.avif",
             },
             {
                 "id": "Summer",
@@ -206,6 +206,10 @@ class TravelViewPopular(ListAPIView):
         }
         return Response(context, status=status.HTTP_200_OK)
 
+
+class EmailView(APIView):
+    serializer_class = EmailSerializer
+    permission_classes=[AllowAny]
     def post(self, request):
         email_serializer = EmailSerializer(data=request.data)
 
@@ -214,8 +218,6 @@ class TravelViewPopular(ListAPIView):
             return Response(data=email_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class TravelViewUpcoming(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
