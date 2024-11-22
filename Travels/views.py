@@ -158,16 +158,51 @@ class TravelViewPopular(ListAPIView):
                 popular_travel, many=True, context={"request": self.request}
             )
         )
+        array_card = [
+            {
+                "id": "UpComing",
+                "name": "Up comingTrips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/UpcomingTrips.avif",
+            },
+            {
+                "id": "Short",
+                "name": "Short Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/ShortTrips.avif",
+            },
+            {
+                "id": "Spring",
+                "name": "Spring Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/SprintTrips.avif",
+            },
+            {
+                "id": "Summer",
+                "name": "Summer Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/SummerTrips.avif",
+            },
+            {
+                "id": "Autumn",
+                "name": "Autumn Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/AutumnTrips.avif",
+            },
+            {
+                "id": "Winter",
+                "name": "Winter Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/WinterTrips.avif",
+            },
+            {
+                "id": "Fancy",
+                "name": "Fancy Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/FancyTrips.avif",
+            },
+            {
+                "id": "Economical",
+                "name": "economical Trips",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/economicalTrips.avif",
+            },
+        ]
         context = {
             "Popular_Trips": travel_serializer.data,
-            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
-            "photo_winter": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/WinterTrips.avif",
-            "photo_autumn": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/AutumnTrips.avif",
-            "photo_summer": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SummerTrips.avif",
-            "photo_fancy": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/FancyTrips.avif",
-            "photo_economy": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/economicalTrips.avif",
-            "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/UpcomingTrips.avif",
-            "photo_short": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/ShortTrips.avif",
+            'cards':array_card
         }
         return Response(context, status=status.HTTP_200_OK)
 
