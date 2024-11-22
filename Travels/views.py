@@ -114,6 +114,7 @@ class TravelViewFancy(ListAPIView):
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
 
+
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         fancy_travel = queryset.filter(mode="Fancy")

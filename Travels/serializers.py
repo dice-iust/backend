@@ -23,6 +23,7 @@ class EmailSerializer(serializers.ModelSerializer):
         model = EmailAddress
         fields = ("email_all",)
         
+        
     
 class TravelSerializer(serializers.ModelSerializer):
     admin = PhotoSerializer(context={"request": serializers.CurrentUserDefault()})

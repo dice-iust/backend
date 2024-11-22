@@ -35,6 +35,7 @@ class Travel(models.Model):
         return self.destination
 
 
+
 class EmailAddress(models.Model):
     email_all = models.EmailField(unique=True)
 
