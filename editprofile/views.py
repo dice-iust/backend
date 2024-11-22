@@ -61,7 +61,8 @@
 #             return response
 #
 #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#
+
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -76,6 +77,7 @@ from rest_framework.generics import GenericAPIView
 
 class UserProfileUpdateAPIView(GenericAPIView):
     authentication_classes = [TokenAuthentication]
+    # permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get_serializer_class(self):
@@ -92,6 +94,7 @@ class UserProfileUpdateAPIView(GenericAPIView):
 
         serializer = UserProfileUpdateSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     def put(self, request):
         user_token = request.COOKIES.get("access_token")
@@ -118,3 +121,6 @@ class UserProfileUpdateAPIView(GenericAPIView):
             return response
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
