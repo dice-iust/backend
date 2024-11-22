@@ -48,7 +48,7 @@ class TravelViewSpring(ListAPIView):
             "Spring Trips": TravelSerializer(
                 spring_travel, many=True, context={"request": self.request}
             ).data,
-            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
+            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SpringTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
 
@@ -144,10 +144,10 @@ class TravelViewPopular(ListAPIView):
         queryset = Travel.objects.all()
         popular_travel = queryset.order_by("-travellers")[:15]
         context = {
-            "Popular_Trips": TravelSerializer(
+            "Popular Trips": TravelSerializer(
                 popular_travel, many=True, context={"request": self.request}
             ).data,
-            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
+            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SpringTrips.avif",
             "photo_winter": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/WinterTrips.avif",
             "photo_autumn": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/AutumnTrips.avif",
             "photo_summer": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SummerTrips.avif",
@@ -184,7 +184,7 @@ class TravelViewUpcoming(ListAPIView):
             "Up comingTrips": TravelSerializer(
                 upcoming_travel, many=True, context={"request": self.request}
             ).data,
-            "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/UpcomingTrips.avif",
+            "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/Upcomingtrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
 
