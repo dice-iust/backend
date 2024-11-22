@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from .models import Travel
-from .serializers import TravelSerializer,EmailSerializer
+from .serializers import TravelSerializer, EmailSerializer
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
 from calendar import monthrange
@@ -31,24 +31,26 @@ class AllTravels(generics.ListAPIView):
         "mode",
         "destination",
         "transportation",
-        'start_place','start_date__month'
+        "start_place",
+        "start_date__month",
     ]
-    filterset_fields = ("travellers",'admin__user_name','mode')
+    filterset_fields = ("travellers", "admin__user_name", "mode")
 
 
 class TravelViewSpring(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
+
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         spring_travel = queryset.filter(start_date__month__in=[1, 2, 3])
 
         context = {
-            "Spring Trips": TravelSerializer(
+            "Spring_Trips": TravelSerializer(
                 spring_travel, many=True, context={"request": self.request}
             ).data,
-            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SpringTrips.avif",
+            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
 
@@ -60,10 +62,10 @@ class TravelViewWinter(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        winter_travel = queryset.filter(start_date__month__in=[10,11,12])
+        winter_travel = queryset.filter(start_date__month__in=[10, 11, 12])
 
         context = {
-            "Winter Trips": TravelSerializer(
+            "Winter_Trips": TravelSerializer(
                 winter_travel, many=True, context={"request": self.request}
             ).data,
             "photo_winter": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/WinterTrips.avif",
@@ -78,10 +80,10 @@ class TravelViewAutumn(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        autumn_travel = queryset.filter(start_date__month__in=[7,8,9])
+        autumn_travel = queryset.filter(start_date__month__in=[7, 8, 9])
 
         context = {
-            "Autumn Trips": TravelSerializer(
+            "Autumn_Trips": TravelSerializer(
                 autumn_travel, many=True, context={"request": self.request}
             ).data,
             "photo_autumn": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/AutumnTrips.avif",
@@ -96,44 +98,50 @@ class TravelViewSummer(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        summer_travel = queryset.filter(start_date__month__in=[4,5,6])
+        summer_travel = queryset.filter(start_date__month__in=[4, 5, 6])
 
         context = {
-            "Summer Trips": TravelSerializer(
+            "Summer_Trips": TravelSerializer(
                 summer_travel, many=True, context={"request": self.request}
             ).data,
             "photo_summer": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SummerTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
 
+
 class TravelViewFancy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
+
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         fancy_travel = queryset.filter(mode="Fancy")
         context = {
-            "Fancy Trips": TravelSerializer(
+            "Fancy_Trips": TravelSerializer(
                 fancy_travel, many=True, context={"request": self.request}
             ).data,
             "photo_fancy": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/FancyTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
+
+
 class TravelVieweconomy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
+
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         fancy_travel = queryset.filter(mode="Budget-friendly")
         context = {
-            "economival Trips": TravelSerializer(
+            "economical_Trips": TravelSerializer(
                 fancy_travel, many=True, context={"request": self.request}
             ).data,
             "photo_economy": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/economicalTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
+
 
 class TravelViewPopular(ListAPIView):
     serializer_class = TravelSerializer
@@ -144,10 +152,10 @@ class TravelViewPopular(ListAPIView):
         queryset = Travel.objects.all()
         popular_travel = queryset.order_by("-travellers")[:15]
         context = {
-            "Popular Trips": TravelSerializer(
+            "Popular_Trips": TravelSerializer(
                 popular_travel, many=True, context={"request": self.request}
             ).data,
-            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SpringTrips.avif",
+            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
             "photo_winter": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/WinterTrips.avif",
             "photo_autumn": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/AutumnTrips.avif",
             "photo_summer": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SummerTrips.avif",
@@ -157,15 +165,17 @@ class TravelViewPopular(ListAPIView):
             "photo_short": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/ShortTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
-    
+
     def post(self, request):
         email_serializer = EmailSerializer(data=request.data)
-        
+
         if email_serializer.is_valid():
-            email_serializer.save()  
+            email_serializer.save()
             return Response(data=email_serializer.data, status=status.HTTP_201_CREATED)
-        
+
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class TravelViewUpcoming(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
@@ -181,10 +191,10 @@ class TravelViewUpcoming(ListAPIView):
             start_date__gte=today, start_date__lte=last_day_of_month
         )
         context = {
-            "Up comingTrips": TravelSerializer(
+            "Up_comingTrips": TravelSerializer(
                 upcoming_travel, many=True, context={"request": self.request}
             ).data,
-            "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/Upcomingtrips.avif",
+            "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/UpcomingTrips.avif",
         }
         return Response(data=context, status=status.HTTP_200_OK)
 
