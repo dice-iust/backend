@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel,EmailAddress
+from .models import Travel, EmailAddress
 from .serializers import TravelSerializer, EmailSerializer
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -17,6 +17,7 @@ from rest_framework import generics
 from django_filters import rest_framework as filters
 from django.conf import settings
 from rest_framework.parsers import MultiPartParser, FormParser
+
 User = get_user_model()
 
 
@@ -67,7 +68,7 @@ class TravelViewWinter(ListAPIView):
             winter_travel, many=True, context={"request": self.request}
         )
         context = {
-            "Winter_Trips":winter_serializer.data,
+            "Winter_Trips": winter_serializer.data,
             "photo_winter": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/WinterTrips.avif",
         }
         return Response(context, status=status.HTTP_200_OK)
@@ -81,9 +82,9 @@ class TravelViewAutumn(ListAPIView):
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         autumn_travel = queryset.filter(start_date__month__in=[7, 8, 9])
-        autumn_serializer=TravelSerializer(
-                autumn_travel, many=True, context={"request": self.request}
-            )
+        autumn_serializer = TravelSerializer(
+            autumn_travel, many=True, context={"request": self.request}
+        )
         context = {
             "Autumn_Trips": autumn_serializer.data,
             "photo_autumn": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/AutumnTrips.avif",
@@ -99,9 +100,9 @@ class TravelViewSummer(ListAPIView):
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         summer_travel = queryset.filter(start_date__month__in=[4, 5, 6])
-        summer_serializer=TravelSerializer(
-                summer_travel, many=True, context={"request": self.request}
-            )
+        summer_serializer = TravelSerializer(
+            summer_travel, many=True, context={"request": self.request}
+        )
         context = {
             "Summer_Trips": summer_serializer.data,
             "photo_summer": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SummerTrips.avif",
@@ -113,7 +114,6 @@ class TravelViewFancy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
-
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -136,9 +136,9 @@ class TravelVieweconomy(ListAPIView):
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         fancy_travel = queryset.filter(mode="Budget-friendly")
-        economy_serializer=TravelSerializer(
-                fancy_travel, many=True, context={"request": self.request}
-            )
+        economy_serializer = TravelSerializer(
+            fancy_travel, many=True, context={"request": self.request}
+        )
         context = {
             "economical_Trips": economy_serializer.data,
             "photo_economy": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/economicalTrips.avif",
@@ -151,13 +151,12 @@ class TravelViewPopular(ListAPIView):
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
     parser_classes = (MultiPartParser, FormParser)
+
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
         popular_travel = queryset.order_by("-travellers")[:15]
-        travel_serializer = (
-            TravelSerializer(
-                popular_travel, many=True, context={"request": self.request}
-            )
+        travel_serializer = TravelSerializer(
+            popular_travel, many=True, context={"request": self.request}
         )
         array_card = [
             {
@@ -201,16 +200,14 @@ class TravelViewPopular(ListAPIView):
                 "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/economicalTrips.avif",
             },
         ]
-        context = {
-            "Popular_Trips": travel_serializer.data,
-            'cards':array_card
-        }
+        context = {"Popular_Trips": travel_serializer.data, "cards": array_card}
         return Response(context, status=status.HTTP_200_OK)
 
 
 class EmailView(APIView):
     serializer_class = EmailSerializer
-    permission_classes=[AllowAny]
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email_serializer = EmailSerializer(data=request.data)
 
@@ -219,6 +216,8 @@ class EmailView(APIView):
             return Response(data=email_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class TravelViewUpcoming(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
@@ -233,9 +232,9 @@ class TravelViewUpcoming(ListAPIView):
         upcoming_travel = queryset.filter(
             start_date__gte=today, start_date__lte=last_day_of_month
         )
-        upcoming_serializer=TravelSerializer(
-                upcoming_travel, many=True, context={"request": self.request}
-            )
+        upcoming_serializer = TravelSerializer(
+            upcoming_travel, many=True, context={"request": self.request}
+        )
         context = {
             "Up_comingTrips": upcoming_serializer.data,
             "photo_upcoming": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/UpcomingTrips.avif",
