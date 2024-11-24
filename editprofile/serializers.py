@@ -11,10 +11,10 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'firstName', 'lastName', 'city', 'user_name', 'profile_image',
-            'gender', 'bio', 'email', 'phone', 'birthDate', 'password'
+            'gender', 'bio', 'email', 'phone', 'birthDate', 'password',
         ]
         extra_kwargs = {
-            'password': {'write_only': True, 'required': False},
+            'password': {'required': False},
         }
 
     def get_image(self,obj):
