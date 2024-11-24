@@ -51,7 +51,7 @@ class TravelViewSpring(ListAPIView):
         )
         context = {
             "Spring_Trips": spring_serializer.data,
-            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SprintTrips.avif",
+            "photo_spring": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels/SpringTrips.avif",
         }
         return Response(context, status=status.HTTP_200_OK)
 
@@ -162,7 +162,7 @@ class TravelViewPopular(ListAPIView):
             {
                 "id": "UpComing",
                 "name": "Up comingTrips",
-                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/UpcomingTrips.avif",
+                "image": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}profiles/Upcomingtrips.avif",
             },
             {
                 "id": "Short",

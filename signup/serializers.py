@@ -73,3 +73,7 @@ class UserViewSerializer(serializers.ModelSerializer):
     #         )
     #         return age
     #     return None
+
+
+class EmailVerificationSerializer(serializers.ModelSerializer):
+    email_verification_code = serializers.IntegerField()

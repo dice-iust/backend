@@ -2,7 +2,7 @@ from django.shortcuts import render
 from .serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
-    UserViewSerializer,
+    UserViewSerializer,EmailVerificationSerializer
 )
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
@@ -15,7 +15,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 import jwt
 from .generate import generate_access_token
-
+import random
+from django.core.mail import send_mail
 User = get_user_model()
 
 
@@ -141,3 +142,56 @@ class UserLogoutViewAPI(APIView):
         response = Response()
         response.data = {"message": "User is already logged out."}
         return response
+# class EmailverificationView(APIView):
+
+
+class UserRegistrationAndVerificationAPIView(APIView):
+    serializer_class = UserRegistrationSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        content = {"message": "Hello!"}
+        return Response(content)
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            # Check if the user already exists
+            if (
+                User.objects.filter(
+                    user_name=serializer.validated_data["user_name"]
+                ).exists()
+                and not User.objects.filter(
+                    email=serializer.validated_data["email"]
+                ).exists()
+            ):
+                return Response(
+                    {"error": "This user_name already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if (
+                User.objects.filter(email=serializer.validated_data["email"]).exists()
+                and not User.objects.filter(
+                    user_name=serializer.validated_data["user_name"]
+                ).exists()
+            ):
+                return Response(
+                    {"error": "This email already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if (
+                User.objects.filter(email=serializer.validated_data["email"]).exists()
+                and User.objects.filter(
+                    user_name=serializer.validated_data["user_name"]
+                ).exists()
+            ):
+                return Response(
+                    {"error": "This user_name and email already exist."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            verification_code = str(random.randint(100000, 999999))
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
