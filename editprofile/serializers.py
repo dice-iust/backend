@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
+
+    profile_image = serializers.SerializerMethodField("get_image")
     class Meta:
         model = User
         fields = [
@@ -14,6 +16,11 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password': {'write_only': True, 'required': False},
         }
+
+    def get_image(self,obj):
+        if obj.profilePicture and hasattr(obj.profilePicture, "url"):
+            return self.context['request'].build_absolute_uri(obj.profilePicture.url)
+        return None
 
     def validate_email(self, value):
         if "@" not in value:
