@@ -10,7 +10,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'firstName', 'lastName', 'city', 'user_name', 'profilePicture',
+            'firstName', 'lastName', 'city', 'user_name', 'profile_image',
             'gender', 'bio', 'email', 'phone', 'birthDate', 'password'
         ]
         extra_kwargs = {
@@ -19,7 +19,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     def get_image(self,obj):
         if obj.profilePicture and hasattr(obj.profilePicture, "url"):
-            return self.context['request'].build_absolute_uri(obj.profilePicture.url)
+            return self.context["request"].build_absolute_uri(obj.profilePicture.url)
         return None
 
     def validate_email(self, value):
