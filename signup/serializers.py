@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from datetime import date
 import re
-
+from .models import *
 User = get_user_model()
 
 
@@ -16,23 +16,23 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ["user_name", "email", "password", "confirmPassword"]
 
-    def create(self, validated_data):
-        user_password = validated_data.pop("password")
-        validated_data.pop("confirmPassword")
-        if not user_password or len(user_password) < 6:
-            raise serializers.ValidationError("Password must be at least 6 characters")
-        if not re.search(r"[A-Za-z]", user_password):
-            raise serializers.ValidationError(
-                "Password must contain at least one letter"
-            )
-        if not re.search(r"[0-9]", user_password):
-            raise serializers.ValidationError(
-                "Password must contain at least one number"
-            )
-        user = User(**validated_data)
-        user.set_password(user_password)
-        user.save()
-        return user
+    # def create(self, validated_data):
+    #     user_password = validated_data.pop("password")
+    #     validated_data.pop("confirmPassword")
+    #     if not user_password or len(user_password) < 6:
+    #         raise serializers.ValidationError("Password must be at least 6 characters")
+    #     if not re.search(r"[A-Za-z]", user_password):
+    #         raise serializers.ValidationError(
+    #             "Password must contain at least one letter"
+    #         )
+    #     if not re.search(r"[0-9]", user_password):
+    #         raise serializers.ValidationError(
+    #             "Password must contain at least one number"
+    #         )
+    #     user = User(**validated_data)
+    #     user.set_password(user_password)
+    #     user.save()
+    #     return user
 
     def validate(self, data):
         password = data.get('password')
@@ -43,9 +43,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Please enter password")
         if password != confirmPassword:
             raise serializers.ValidationError("Password and confirm password are not equal")
+
         else:
             return data
-
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -76,4 +76,11 @@ class UserViewSerializer(serializers.ModelSerializer):
 
 
 class EmailVerificationSerializer(serializers.ModelSerializer):
-    email_verification_code = serializers.IntegerField()
+    class Meta:
+        model = EmailVerification
+        fields = ["verification_code","email"]
+    def validate(self, obj):
+        if  obj.is_expired():
+            raise ValidationError("the verification code is expired")
+        else:
+            return obj
