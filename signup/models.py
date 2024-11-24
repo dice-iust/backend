@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
+from django.utils import timezone
+from datetime import timedelta
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, user_name, email, password=None,**extra_fields):
@@ -57,3 +59,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class EmailVerification(models.Model):
+    verification_code = models.CharField(max_length=6)
+    username = models.CharField(max_length=100)
+    password = models.CharField(max_length=100)  # Fixed typo here
+    email = models.EmailField()
+    time_add = models.DateTimeField(default=timezone.now)
+    def is_expired(self):
+        expiration_time = timezone.now() - timedelta(minutes=3)
+        return self.time_add < expiration_time

@@ -4,6 +4,7 @@ from .serializers import (
     UserLoginSerializer,
     UserViewSerializer,EmailVerificationSerializer
 )
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -17,6 +18,7 @@ import jwt
 from .generate import generate_access_token
 import random
 from django.core.mail import send_mail
+from .models import EmailVerification
 User = get_user_model()
 
 
@@ -142,7 +144,6 @@ class UserLogoutViewAPI(APIView):
         response = Response()
         response.data = {"message": "User is already logged out."}
         return response
-# class EmailverificationView(APIView):
 
 
 class UserRegistrationAndVerificationAPIView(APIView):
@@ -156,8 +157,8 @@ class UserRegistrationAndVerificationAPIView(APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            # Check if the user already exists
+        if serializer.is_valid():
+
             if (
                 User.objects.filter(
                     user_name=serializer.validated_data["user_name"]
@@ -193,5 +194,74 @@ class UserRegistrationAndVerificationAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             verification_code = str(random.randint(100000, 999999))
-            
+            if not serializer.validated_data["password"] or len(serializer.validated_data["password"]) < 6:
+                raise serializers.ValidationError("Password must be at least 6 characters")
+            if not re.search(r"[A-Za-z]", serializer.validated_data["password"]):
+                return Response(
+                    "Password must contain at least one letter"
+                )
+            if not re.search(r"[0-9]", serializer.validated_data["password"]):
+                return Response("Password must contain at least one number")
+            EmailVerification.objects.create(
+                email=serializer.validated_data["email"],
+                username=serializer.validated_data["user_name"],
+                password=serializer.validated_data["password"],
+                verification_code=verification_code,
+            )
+            send_mail(
+                subject="Your Verification Code",
+                message=f"Your verification code is: {verification_code}",
+                from_email="triiptide@gmail.com",
+                recipient_list=[serializer.validated_data["email"]],
+            )
+            return Response({"email": serializer.validated_data["email"]})
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmailVerificationView(APIView):
+    serializer = EmailVerificationSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = (TokenAuthentication,)
+
+    def post(self, request, *args, **kwargs):
+        email_serializer = self.serializer(data=request.data)
+
+
+        if email_serializer.is_valid():
+            email = email_serializer.validated_data["email"]
+            verification_send_code = email_serializer.validated_data[
+                "verification_code"
+            ]
+
+          
+            verification = EmailVerification.objects.filter(email=email).last()
+
+            if not verification:
+                return Response(
+                    {"error": "No verification record found."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if str(verification.verification_code) == str(verification_send_code):
+                new_user = User.objects.create(
+                    user_name=verification.username,
+                    email=verification.email,
+                    password=verification.password,
+                )
+                new_user.set_password(verification.password)
+                new_user.save()
+                access_token = generate_access_token(new_user)
+                data = {"access_token": access_token}
+                response = Response(data, status=status.HTTP_201_CREATED)
+                response.set_cookie(
+                    key="access_token", value=access_token, httponly=True
+                )
+                return response
+
+            return Response(
+                {"error": "Invalid verification code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+        return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
