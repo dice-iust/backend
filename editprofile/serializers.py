@@ -26,7 +26,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Password must be at least 6 characters long.")
             if not re.search(r'[A-Za-z]', value):
                 raise serializers.ValidationError("Password must contain at least one letter.")
-            if not re.search(r'\d', value):
+            if not re.search(r'[0-9]', value):
                 raise serializers.ValidationError("Password must contain at least one number.")
             if value.isdigit() or value.isalpha():
                 raise serializers.ValidationError("Password cannot be all letters or all numbers.")
