@@ -17,10 +17,10 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'password': {'required': False},
         }
 
-    def get_image(self,obj):
-        if obj.profilePicture and hasattr(obj.profilePicture, "url"):
-            return self.context["request"].build_absolute_uri(obj.profilePicture.url)
-        return None
+    # def get_image(self,obj):
+    #     if obj.profilePicture and hasattr(obj.profilePicture, "url"):
+    #         return self.context["request"].build_absolute_uri(obj.profilePicture.url)
+    #     return None
 
     def validate_email(self, value):
         if "@" not in value:
