@@ -6,11 +6,11 @@ User = get_user_model()
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
-    profile_image = serializers.SerializerMethodField("get_image")
+    profilePicture = serializers.SerializerMethodField("get_image")
     class Meta:
         model = User
         fields = [
-            'firstName', 'lastName', 'city', 'user_name', 'profile_image',
+            'firstName', 'lastName', 'city', 'user_name', 'profilePicture',
             'gender', 'bio', 'email', 'phone', 'birthDate', 'password',
         ]
         extra_kwargs = {
