@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from datetime import date
 import re
-
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework.exceptions import ValidationError
 
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -85,13 +86,19 @@ class UserViewSerializer(serializers.ModelSerializer):
 class EmailVerificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailVerification
-        fields = ["verification_code","email"]
-    def validate(self, obj):
-        if  obj.is_expired():
-            raise ValidationError("the verification code is expired")
-        else:
-            return obj
+        fields = ["verification_code",]
 
+    def validate(self,obj):
+        verification_code = obj.get("verification_code")
+        expiration_time = timezone.now() - timedelta(minutes=3)
+        verification = EmailVerification.objects.filter(verification_code=verification_code).last()
+        if not verification:
+            raise serializers.ValidationError("Verification record not found.")
+
+        expiration_time = timezone.now() - timedelta(minutes=3)
+        if verification.time_add < expiration_time:
+            raise serializers.ValidationError("Your code is expired.")
+        return obj
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -110,5 +117,3 @@ class PasswordResetSerializer(serializers.Serializer):
         if newPassword != confirm_password:
             raise serializers.ValidationError("Passwords do not match.")
         return data
-
-

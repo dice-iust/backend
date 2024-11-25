@@ -149,7 +149,7 @@ class TravelVieweconomy(ListAPIView):
 class TravelViewPopular(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny,]
     parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request, *args, **kwargs):
