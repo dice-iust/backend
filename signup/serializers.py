@@ -2,6 +2,13 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from datetime import date
 import re
+
+from rest_framework.exceptions import ValidationError
+
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+
 from .models import *
 User = get_user_model()
 
@@ -84,3 +91,24 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
             raise ValidationError("the verification code is expired")
         else:
             return obj
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate(self, data):
+        email = data.get('email')
+        if not User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("No user found with this email address.")
+        return data
+class PasswordResetSerializer(serializers.Serializer):
+    new_password = serializers.CharField(max_length=100, min_length=6, write_only=True)
+    confirm_password = serializers.CharField(max_length=100, min_length=6, write_only=True)
+    def validate(self, data):
+        new_password = data.get("new_password")
+        confirm_password = data.get("confirm_password")
+        if new_password != confirm_password:
+            raise serializers.ValidationError("Passwords do not match.")
+        return data
+
+

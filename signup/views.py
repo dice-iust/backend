@@ -2,7 +2,7 @@ from django.shortcuts import render
 from .serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
-    UserViewSerializer,EmailVerificationSerializer
+    UserViewSerializer, EmailVerificationSerializer, ForgotPasswordSerializer, PasswordResetSerializer
 )
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
@@ -19,13 +19,19 @@ from .generate import generate_access_token
 import random
 from django.core.mail import send_mail
 from .models import EmailVerification
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+
 User = get_user_model()
 
 
 class UserRegistrationAPIView(APIView):
     serializer_class = UserRegistrationSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (AllowAny,)
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         content = {"message": "Hello!"}
@@ -80,7 +86,7 @@ class UserRegistrationAPIView(APIView):
 class UserLoginAPIView(APIView):
     serializer_class = UserLoginSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (AllowAny,)
+    permission_classes = [AllowAny,]
     def get(self, request):
         photo_response = {
             "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}login.jpg"
@@ -114,7 +120,7 @@ class UserLoginAPIView(APIView):
 
 class UserViewAPI(APIView):
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (AllowAny,)
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         user_token = request.COOKIES.get("access_token")
@@ -132,7 +138,7 @@ class UserViewAPI(APIView):
 
 class UserLogoutViewAPI(APIView):
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (AllowAny,)
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         user_token = request.COOKIES.get("access_token", None)
@@ -149,7 +155,7 @@ class UserLogoutViewAPI(APIView):
 class UserRegistrationAndVerificationAPIView(APIView):
     serializer_class = UserRegistrationSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (AllowAny,)
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         content = {"message": "Hello!"}
@@ -222,7 +228,7 @@ class UserRegistrationAndVerificationAPIView(APIView):
 class EmailVerificationView(APIView):
     serializer = EmailVerificationSerializer
     permission_classes = [AllowAny]
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = [TokenAuthentication,]
 
     def post(self, request, *args, **kwargs):
         email_serializer = self.serializer(data=request.data)
@@ -265,3 +271,52 @@ class EmailVerificationView(APIView):
 
 
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+#forgot_password:
+class ForgotPasswordView(APIView):
+    permission_classes = (AllowAny),
+    serializer_class = ForgotPasswordSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
+            token = PasswordResetTokenGenerator().make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            reset_link = request.build_absolute_uri(
+                reverse('password-reset-confirm', kwargs={'uidb64': uid, 'token': token})
+            )
+
+            send_mail(
+                subject="Password Reset Request",
+                message=f"Click the link to reset your password: {reset_link}",
+                from_email="noreply@yourdomain.com",
+                recipient_list=[email],
+            )
+            return Response({"message": "Password reset link sent to your email."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny],
+    serializer_class = PasswordResetSerializer
+
+    def post(self, request, uidb64, token):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            try:
+                uid = force_str(urlsafe_base64_decode(uidb64))
+                user = User.objects.get(pk=uid)
+
+                if not PasswordResetTokenGenerator().check_token(user, token):
+                    return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+                new_password = serializer.validated_data['new_password']
+                user.set_password(new_password)
+                user.save()
+                return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
+            except (User.DoesNotExist, ValueError):
+                return Response({"error": "Invalid user."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
