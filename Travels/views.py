@@ -24,7 +24,7 @@ User = get_user_model()
 class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
     filter_backends = (DjangoFilterBackend, SearchFilter)
     search_fields = [
         "travellers",
@@ -41,7 +41,7 @@ class AllTravels(generics.ListAPIView):
 class TravelViewSpring(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -59,7 +59,7 @@ class TravelViewSpring(ListAPIView):
 class TravelViewWinter(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -77,7 +77,7 @@ class TravelViewWinter(ListAPIView):
 class TravelViewAutumn(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -95,7 +95,7 @@ class TravelViewAutumn(ListAPIView):
 class TravelViewSummer(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -113,7 +113,7 @@ class TravelViewSummer(ListAPIView):
 class TravelViewFancy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -131,7 +131,7 @@ class TravelViewFancy(ListAPIView):
 class TravelVieweconomy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -149,7 +149,7 @@ class TravelVieweconomy(ListAPIView):
 class TravelViewPopular(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
     parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request, *args, **kwargs):
@@ -206,7 +206,7 @@ class TravelViewPopular(ListAPIView):
 
 class EmailView(APIView):
     serializer_class = EmailSerializer
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def post(self, request):
         email_serializer = EmailSerializer(data=request.data)
@@ -221,7 +221,7 @@ class EmailView(APIView):
 class TravelViewUpcoming(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
         today = datetime.now()
@@ -245,7 +245,7 @@ class TravelViewUpcoming(ListAPIView):
 class TravelViewShort(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, *args, **kwargs):
 
@@ -268,7 +268,7 @@ class TravelViewShort(ListAPIView):
 
 class SingleTravelView(APIView):
     serializer_class = TravelSerializer
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
 
     def get(self, request, pk):
         try:

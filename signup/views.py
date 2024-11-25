@@ -227,7 +227,7 @@ class UserRegistrationAndVerificationAPIView(APIView):
 
 class EmailVerificationView(APIView):
     serializer = EmailVerificationSerializer
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
     authentication_classes = [TokenAuthentication,]
 
     def post(self, request, *args, **kwargs):
@@ -300,7 +300,7 @@ class ForgotPasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
-    permission_classes = [AllowAny],
+    permission_classes = (AllowAny),
     serializer_class = PasswordResetSerializer
 
     def post(self, request, uidb64, token):

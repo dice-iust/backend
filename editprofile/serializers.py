@@ -33,9 +33,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         currentPassword = data.get('currentPassword')
         newPassword = data.get('newPassword')
 
-        if newPassword:
-            if 'confirmPassword' in data and data.get('confirmPassword') != newPassword:
-                raise serializers.ValidationError("New password and confirm password must match.")
+        # if newPassword:
+        #     if 'confirmPassword' in data and data.get('confirmPassword') != newPassword:
+        #         raise serializers.ValidationError("New password and confirm password must match.")
 
             # Ensure current password is correct
         if currentPassword:
