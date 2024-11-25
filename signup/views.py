@@ -227,7 +227,7 @@ class UserRegistrationAndVerificationAPIView(APIView):
 
 class EmailVerificationView(APIView):
     serializer = EmailVerificationSerializer
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny)
     authentication_classes = [TokenAuthentication,]
 
     def post(self, request, *args, **kwargs):
@@ -300,7 +300,7 @@ class ForgotPasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
-    permission_classes = [AllowAny],
+    permission_classes = (AllowAny),
     serializer_class = PasswordResetSerializer
 
     def post(self, request, uidb64, token):
@@ -313,8 +313,8 @@ class PasswordResetConfirmView(APIView):
                 if not PasswordResetTokenGenerator().check_token(user, token):
                     return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
-                new_password = serializer.validated_data['new_password']
-                user.set_password(new_password)
+                newPassword = serializer.validated_data['newPassword']
+                user.set_password(newPassword)
                 user.save()
                 return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
             except (User.DoesNotExist, ValueError):

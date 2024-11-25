@@ -102,12 +102,12 @@ class ForgotPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("No user found with this email address.")
         return data
 class PasswordResetSerializer(serializers.Serializer):
-    new_password = serializers.CharField(max_length=100, min_length=6, write_only=True)
+    newPassword = serializers.CharField(max_length=100, min_length=6, write_only=True)
     confirm_password = serializers.CharField(max_length=100, min_length=6, write_only=True)
     def validate(self, data):
-        new_password = data.get("new_password")
+        newPassword = data.get("newPassword")
         confirm_password = data.get("confirm_password")
-        if new_password != confirm_password:
+        if newPassword != confirm_password:
             raise serializers.ValidationError("Passwords do not match.")
         return data
 
