@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
+from django.utils import timezone
+from datetime import timedelta
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, user_name, email, password=None,**extra_fields):
@@ -26,13 +28,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     user_name = models.CharField(max_length=100, unique=True, default='yourname')
     email = models.EmailField(max_length=100, unique=True)
-    first_name = models.CharField(max_length=50, blank=True, null=True)
-    last_name = models.CharField(max_length=50, blank=True, null=True)
+    firstName = models.CharField(max_length=50, blank=True, null=True)
+    lastName = models.CharField(max_length=50, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
-    gender = models.CharField(max_length=10, choices=(('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')), blank=True, null=True)
+    profilePicture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=(('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')),
+                              blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    birthDate = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
@@ -55,3 +59,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class EmailVerification(models.Model):
+    verification_code = models.CharField(max_length=6)
+    username = models.CharField(max_length=100)
+    password = models.CharField(max_length=100)  # Fixed typo here
+    email = models.EmailField()
+    time_add = models.DateTimeField(default=timezone.now)
+    def is_expired(self):
+        expiration_time = timezone.now() - timedelta(minutes=3)
+        return self.time_add < expiration_time
