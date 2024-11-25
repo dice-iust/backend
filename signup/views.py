@@ -24,6 +24,7 @@ from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+import re
 
 User = get_user_model()
 
@@ -227,22 +228,23 @@ class UserRegistrationAndVerificationAPIView(APIView):
 
 class EmailVerificationView(APIView):
     serializer = EmailVerificationSerializer
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
     authentication_classes = [TokenAuthentication,]
-
     def post(self, request, *args, **kwargs):
         email_serializer = self.serializer(data=request.data)
-
-
         if email_serializer.is_valid():
-            email = email_serializer.validated_data["email"]
+            # email = email_serializer.validated_data["email"]
+            email=request.data.get("email")
             verification_send_code = email_serializer.validated_data[
                 "verification_code"
             ]
-
-          
-            verification = EmailVerification.objects.filter(email=email).last()
-
+            if not email:
+                # return Response("ther is no email.")
+                verification = EmailVerification.objects.filter(
+                    verification_code=verification_send_code
+                ).last()
+            else:
+                verification = EmailVerification.objects.filter(email=email).last()
             if not verification:
                 return Response(
                     {"error": "No verification record found."},
@@ -269,11 +271,10 @@ class EmailVerificationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-#forgot_password:
+# forgot_password:
 class ForgotPasswordView(APIView):
     permission_classes = (AllowAny),
     serializer_class = ForgotPasswordSerializer
@@ -293,7 +294,7 @@ class ForgotPasswordView(APIView):
             send_mail(
                 subject="Password Reset Request",
                 message=f"Click the link to reset your password: {reset_link}",
-                from_email="noreply@yourdomain.com",
+                from_email="triiptide@gmail.com",
                 recipient_list=[email],
             )
             return Response({"message": "Password reset link sent to your email."}, status=status.HTTP_200_OK)

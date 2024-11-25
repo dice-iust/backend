@@ -68,6 +68,5 @@ class EmailVerification(models.Model):
     password = models.CharField(max_length=100)  # Fixed typo here
     email = models.EmailField()
     time_add = models.DateTimeField(default=timezone.now)
-    def is_expired(self):
-        expiration_time = timezone.now() - timedelta(minutes=3)
-        return self.time_add < expiration_time
+    class Meta:
+        unique_together = ("verification_code", "email")
