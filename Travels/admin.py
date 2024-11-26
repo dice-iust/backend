@@ -1,4 +1,6 @@
 from django.contrib import admin
-from .models import Travel
-# Register your models here.
+from .models import *
+admin.site.register(TravellersGroup)
 admin.site.register(Travel)
+admin.site.register(UserRate)
+admin.site.register(TravelRate)
