@@ -17,7 +17,7 @@ class Travel(models.Model):
     admin = models.ForeignKey(
         User, on_delete=models.PROTECT, related_name="admin_trips"
     )
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200,unique=True)
     start_date = models.DateField()
     photo = models.ImageField(upload_to="profiles", blank=True)
     destination = models.CharField(max_length=200)
@@ -26,6 +26,7 @@ class Travel(models.Model):
     transportation = models.CharField(max_length=200, choices=TRANS_CHOICES)
     end_date = models.DateField()
     travellers = models.IntegerField(default=5)
+    empty_travellers=models.IntegerField(default=1)
 
     def __str__(self):
         return self.destination
@@ -39,16 +40,10 @@ class EmailAddress(models.Model):
 
 
 class TravellersGroup(models.Model):
-    group_name = models.CharField(max_length=100, unique=True, blank=True)
     travel_is = models.OneToOneField(
         Travel, on_delete=models.PROTECT, related_name="travel_group"
     )
     users = models.ManyToManyField(User, related_name="travel_group_person")
-
-    # def save(self, *args, **kwargs):
-    #     if not self.group_name:
-    #         self.group_name = f"Group for {self.travel_is.name}"
-    #     super().save(*args, **kwargs)
 
 
 class UserRate(models.Model):

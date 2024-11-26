@@ -3,8 +3,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel, EmailAddress
-from .serializers import TravelSerializer, EmailSerializer
+from .models import Travel, EmailAddress, TravellersGroup
+from .serializers import (
+    TravelSerializer,
+    EmailSerializer,
+    TravelGroupSerializer,
+    TravelPostGroupSerializer,TravelPostSerializer
+)
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
 from calendar import monthrange
@@ -17,14 +22,15 @@ from rest_framework import generics
 from django_filters import rest_framework as filters
 from django.conf import settings
 from rest_framework.parsers import MultiPartParser, FormParser
-
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 User = get_user_model()
-
+import jwt
 
 class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
     filter_backends = (DjangoFilterBackend, SearchFilter)
     search_fields = [
         "travellers",
@@ -41,7 +47,7 @@ class AllTravels(generics.ListAPIView):
 class TravelViewSpring(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -59,7 +65,7 @@ class TravelViewSpring(ListAPIView):
 class TravelViewWinter(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -77,7 +83,7 @@ class TravelViewWinter(ListAPIView):
 class TravelViewAutumn(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -95,7 +101,7 @@ class TravelViewAutumn(ListAPIView):
 class TravelViewSummer(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -113,7 +119,7 @@ class TravelViewSummer(ListAPIView):
 class TravelViewFancy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -131,7 +137,7 @@ class TravelViewFancy(ListAPIView):
 class TravelVieweconomy(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
@@ -206,7 +212,7 @@ class TravelViewPopular(ListAPIView):
 
 class EmailView(APIView):
     serializer_class = EmailSerializer
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def post(self, request):
         email_serializer = EmailSerializer(data=request.data)
@@ -221,7 +227,7 @@ class EmailView(APIView):
 class TravelViewUpcoming(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         today = datetime.now()
@@ -245,7 +251,7 @@ class TravelViewUpcoming(ListAPIView):
 class TravelViewShort(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
-    permission_classes = (AllowAny)
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
 
@@ -267,8 +273,8 @@ class TravelViewShort(ListAPIView):
 
 
 class SingleTravelView(APIView):
-    serializer_class = TravelSerializer
-    permission_classes = (AllowAny)
+    serializer_class = TravelGroupSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
         try:
@@ -278,6 +284,130 @@ class SingleTravelView(APIView):
                 {"detail": "This travel does not exist."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        travel_serializer = TravelSerializer(travel_get, context={"request": request})
+        tg=TravellersGroup.objects.filter(travel_is=travel_get).first()
+        if not tg:
+            return Response("this Travel is not exit.")
+        travel_serializer = TravelGroupSerializer(
+            tg, context={"request": request}
+        )
         return Response(data=travel_serializer.data, status=status.HTTP_200_OK)
+
+
+class TravelGroupView(APIView):
+    serializer_class = TravelGroupSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        user_token = request.COOKIES.get("access_token")
+
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        user_groups = TravellersGroup.objects.filter(users=user)
+
+        if user_groups.exists():
+            serializer = TravelGroupSerializer(
+                user_groups, many=True, context={"request": self.request}
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            {"detail": "No travel groups found for the user."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+
+class PostTravelUserView(APIView):
+    serializer_class = TravelPostGroupSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request):
+        user_token = request.COOKIES.get("access_token")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            travel_name = serializer.validated_data["name"]
+            travel = Travel.objects.filter(name=travel_name).first()
+
+            if not travel:
+                return Response(
+                    {"detail": "Travel not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            elif travel.empty_travellers < travel.travellers:
+                travel.empty_travellers += 1
+                travel.save()
+                tg, created = TravellersGroup.objects.get_or_create(travel_is=travel)
+                tg.users.add(user)
+                return Response(
+                    {"detail": "Travel successfully booked."},
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(
+                    {"detail": "This travel is full."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PostTravelView(APIView):
+    serializer_class = TravelPostSerializer
+    authenticated_classes = [TokenAuthentication]
+    def post(self, request):
+        user_token = request.COOKIES.get("access_token")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer=TravelPostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(admin=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors)
+        

@@ -10,7 +10,7 @@ urlpatterns = [
     path("travels/fancy/",TravelViewFancy.as_view()),
     path("travels/upcoming/",TravelViewUpcoming.as_view()),
     path("travels/short/",TravelViewShort.as_view()),
-    path("travels/economy/",TravelVieweconomy.as_view()),
-    path('email/',EmailView.as_view()),
+    path("travels/economy/",TravelVieweconomy.as_view()),path("travels/add/",PostTravelView.as_view()),
+    path('email/',EmailView.as_view()),path('mytravels/',TravelGroupView.as_view()),path("travels/adduser/",PostTravelUserView.as_view())
 ]
 
