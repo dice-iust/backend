@@ -215,17 +215,35 @@ class UserRegistrationAndVerificationAPIView(APIView):
                 password=serializer.validated_data["password"],
                 verification_code=verification_code,
             )
-            send_mail(
-                subject="Your Verification Code",
-                message=f"Your verification code is: {verification_code}",
-                from_email="triiptide@gmail.com",
-                recipient_list=[serializer.validated_data["email"]],
-            )
+            # send_mail(
+            #     subject="Your Verification Code",
+            #     message=f"Your verification code is: {verification_code}",
+            #     from_email="triiptide@gmail.com",
+            #     recipient_list=[serializer.validated_data["email"]],
+            # )
             return Response({"email": serializer.validated_data["email"]})
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+class sendVerificationCode(APIView):
+    def get(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        click=request.data.get("click")
+        verification=EmailVerification.objects.filter(email=email).last()
+        if not verification:
+            return("this email dont exist.")
+        verification_code=verification.verification_code
+        if click=="hi":
+            send_mail(
+                subject="Your Verification Code",
+                message=f"Your verification code is: {verification_code}",
+                from_email="triiptide@gmail.com",
+                recipient_list=[email],
+            )
+            return Response(
+                {"message": "Verification code sent."}, status=status.HTTP_200_OK
+            )
+        return Response("click hi please.")
 class EmailVerificationView(APIView):
     serializer = EmailVerificationSerializer
     permission_classes = [AllowAny]
@@ -264,6 +282,7 @@ class EmailVerificationView(APIView):
                 response.set_cookie(
                     key="access_token", value=access_token, httponly=True
                 )
+                verification.delete()
                 return response
 
             return Response(
