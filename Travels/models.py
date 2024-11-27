@@ -46,13 +46,18 @@ class TravellersGroup(models.Model):
     users = models.ManyToManyField(User, related_name="travel_group_person")
 
 
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
 class UserRate(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.PROTECT, related_name="user_rate"
-    )
-    rate = models.PositiveIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)], default=1
-    )
+    )  
+    rated_by = models.ManyToManyField(User, related_name="rated_by_user", blank=True)
+    number_rated_by=models.PositiveIntegerField(default=0)
+    def __str__(self):
+        return f"{self.user} rated by {self.rated_by} - {self.user.rate}"
 
 
 class TravelRate(models.Model):
@@ -60,5 +65,5 @@ class TravelRate(models.Model):
         Travel, on_delete=models.PROTECT, related_name="travel_rate"
     )
     travel_rate = models.PositiveIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)], default=1
+        validators=[MinValueValidator(1), MaxValueValidator(5)], default=0
     )
