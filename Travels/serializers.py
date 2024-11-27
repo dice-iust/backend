@@ -92,7 +92,6 @@ class TravelPostGroupSerializer(serializers.Serializer):
 
 
 class TravelPostSerializer(serializers.ModelSerializer):
-    # image_url = serializers.SerializerMethodField("get_image")
 
     class Meta:
         model = Travel
@@ -108,7 +107,11 @@ class TravelPostSerializer(serializers.ModelSerializer):
             "mode",
         ]
 
-    # def get_image(self, obj):
-    #     if obj.photo and hasattr(obj.photo, "url"):
-    #         return self.context["request"].build_absolute_uri(obj.photo.url)
-    #     return None
+
+class UserRateSerializer(serializers.Serializer):
+    user_name=serializers.CharField(max_length=255)
+    rate=serializers.IntegerField()
+    # def validate_rate(self, rate):
+    #     if rate<0 or rate>5:
+    #         return serializers.ValidationError("Rate is 0 to 5")
+    #     return rate
