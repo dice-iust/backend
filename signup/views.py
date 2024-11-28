@@ -279,6 +279,10 @@ class ForgotPasswordView(APIView):
     permission_classes = (AllowAny),
     serializer_class = ForgotPasswordSerializer
 
+    def get(self, request):
+        content = {"message": "Please provide your email to reset your password."}
+        return Response(content, status=status.HTTP_200_OK)
+
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -303,6 +307,26 @@ class ForgotPasswordView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny),
     serializer_class = PasswordResetSerializer
+
+    def get(self, request, uidb64, token):
+
+        try:
+            # Decode the uid and retrieve the user
+            uid = urlsafe_base64_decode(uidb64).decode()  # Decode the uid
+            user = User.objects.get(pk=uid)  # Retrieve the user by ID
+
+            # Validate the reset token
+            token_generator = PasswordResetTokenGenerator()
+            if token_generator.check_token(user, token):
+                # Token is valid, show the form for password reset
+                return Response({"message": "Valid token, please reset your password."}, status=status.HTTP_200_OK)
+            else:
+                # Invalid token
+                return Response({"error": "The reset token is invalid or has expired."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"error": "Invalid token or UID."}, status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request, uidb64, token):
         serializer = self.serializer_class(data=request.data)
