@@ -69,5 +69,6 @@ class EmailVerification(models.Model):
     password = models.CharField(max_length=100)  # Fixed typo here
     email = models.EmailField()
     time_add = models.DateTimeField(default=timezone.now)
+    token=models.CharField(max_length=32,null=True, blank=True)
     class Meta:
         unique_together = ("verification_code", "email")
