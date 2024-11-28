@@ -287,7 +287,7 @@ class EmailVerificationView(APIView):
             verification = EmailVerification.objects.filter(token=token).last()
             if not verification:
                 return Response(
-                    {"error": "No verification record found."},
+                    {"success": False},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if verification.verification_code == verification_send_code:
@@ -298,21 +298,21 @@ class EmailVerificationView(APIView):
                 )
                 new_user.set_password(verification.password)
                 new_user.save()
-                access_token = generate_access_token(new_user)
-                data = {"access_token": access_token}
-                response = Response(data, status=status.HTTP_201_CREATED)
+                user_access_token = generate_access_token(new_user)
+                response = Response()
                 response.set_cookie(
-                    key="access_token", value=access_token, httponly=True
+                    key="access_token", value=user_access_token, httponly=True
                 )
+                response.data = {"access_token": user_access_token, "success": True}
                 verification.delete()
                 return response
             verification.delete()
             return Response(
-                {"error": "Invalid verification code."},
+                {"error": "Invalid verification code.", "success": False},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"seccess":False}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # forgot_password:
