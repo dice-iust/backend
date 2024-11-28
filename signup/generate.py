@@ -1,6 +1,12 @@
 import jwt
 from datetime import datetime, timedelta
 from django.conf import settings
+import secrets
+
+
+def generate_secure_token(length=32):
+    return secrets.token_hex(length // 2)
+
 
 def generate_access_token(user):
     payload = {
