@@ -3,12 +3,15 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel, EmailAddress, TravellersGroup,UserRate
+from .models import Travel, EmailAddress, TravellersGroup, UserRate
 from .serializers import (
     TravelSerializer,
     EmailSerializer,
     TravelGroupSerializer,
-    TravelPostGroupSerializer,TravelPostSerializer,UserRateSerializer
+    TravelPostGroupSerializer,
+    TravelPostSerializer,
+    UserRateSerializer,
+    TravelRateSerializer,
 )
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -316,8 +319,11 @@ class TravelGroupView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        travel_admin=Travel.objects.filter(admin=user)
+        user_groups = TravellersGroup.objects.filter(
+        Q(users=user) | Q(travel_is__in=travel_admin)
+        )
 
-        user_groups = TravellersGroup.objects.filter(users=user)
 
         if user_groups.exists():
             serializer = TravelGroupSerializer(
@@ -407,7 +413,8 @@ class PostTravelView(APIView):
             )
         serializer=TravelPostSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(admin=user,photo=request.data.get('photo'))
+            travel =  serializer.save(admin=user,photo=request.data.get('photo'))
+            TravellersGroup.objects.create(travel_is=travel)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors)
 
@@ -487,3 +494,72 @@ class UserRateView(APIView):
             return Response(f"You rated {username} successfully.", status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TravelRateView(APIView):
+    serializer_class = TravelRateSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        user_token = request.COOKIES.get("access_token")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+        serializer = TravelRateSerializer(data=request.data)
+        if serializer.is_valid():
+            travel_name = serializer.validated_data[
+                "travel_name"
+            ]  
+            travel = Travel.objects.filter(name=travel_name).first()
+
+
+            if not travel:
+                return Response(
+                    {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            group = TravellersGroup.objects.filter(travel_is=travel).first()
+            if not group:
+                return Response(
+                    {"detail": "Travel group not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            is_part_of_group = group.users.filter(user_id=user.user_id).exists()
+            is_admin = travel.admin == user
+
+            if not (is_part_of_group or is_admin):
+                return Response(
+                    {"detail": "User is not authorized to rate this travel."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if travel.rated_by_user.filter(pk=user.pk).exists():
+                return Response({"error": "You have already rated this travel."}, status=status.HTTP_400_BAD_REQUEST)
+
+            total_rate = travel.rate * travel.rated_by  
+            total_rate += serializer.validated_data["rate"]  
+            travel.rated_by += 1  
+            travel.rate = total_rate / travel.rated_by 
+            travel.rated_by_user.add(user)
+            travel.save()
+
+            return Response({"success": "You rated successfully."})
+
+        return Response(
+            {"error": "Your input data is invalid."}, status=status.HTTP_400_BAD_REQUEST
+        )
