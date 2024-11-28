@@ -50,7 +50,7 @@ class TravelSerializer(serializers.ModelSerializer):
             "destination",
             "transportation",
             "start_place",
-            "mode",
+            "mode","rate"
         ]
 
     def get_image(self, obj):
@@ -111,7 +111,8 @@ class TravelPostSerializer(serializers.ModelSerializer):
 class UserRateSerializer(serializers.Serializer):
     user_name=serializers.CharField(max_length=255)
     rate=serializers.IntegerField()
-    # def validate_rate(self, rate):
-    #     if rate<0 or rate>5:
-    #         return serializers.ValidationError("Rate is 0 to 5")
-    #     return rate
+
+class TravelRateSerializer(serializers.Serializer):
+    travel_name = serializers.CharField(max_length=255)
+    rate=serializers.IntegerField()
+    
