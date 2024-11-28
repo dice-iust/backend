@@ -1,23 +1,22 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from Travels.models import Travel
 from .models import Expense
 from .serializers import ExpenseSerializer, SettlementSerializer
 
+class CreateExpenseAPIView(generics.GenericAPIView):
+    serializer_class = ExpenseSerializer
 
-class CreateExpenseAPIView(APIView):
     def post(self, request, travel_id):
-        serializer = ExpenseSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             travel = Travel.objects.get(pk=travel_id)
             serializer.save(created_by=request.user, travel=travel)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-class DebtsAPIView(APIView):
+class DebtsAPIView(generics.GenericAPIView):
     def get(self, request, travel_id):
         travel = Travel.objects.get(pk=travel_id)
         expenses = Expense.objects.filter(travel=travel)
@@ -33,10 +32,11 @@ class DebtsAPIView(APIView):
 
         return Response({"debts": user_debts}, status=status.HTTP_200_OK)
 
+class SettleDebtAPIView(generics.GenericAPIView):
+    serializer_class = SettlementSerializer
 
-class SettleDebtAPIView(APIView):
     def post(self, request):
-        serializer = SettlementSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             settlement = serializer.save()
             settlement.is_paid = True
