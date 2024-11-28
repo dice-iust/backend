@@ -319,19 +319,19 @@ class PasswordResetConfirmView(APIView):
 
     def get(self, request, uidb64, token):
         try:
-            # Decode the uid and retrieve the user
-            uid = urlsafe_base64_decode(uidb64).decode()  # Decode the uid
-            user = User.objects.get(pk=uid)  # Retrieve the user by ID
 
-            # Validate the reset token
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+
+
             token_generator = PasswordResetTokenGenerator()
             if token_generator.check_token(user, token):
-                # Token is valid, show the form for password reset
+
                 form = SetPasswordForm(user=user)
                 return Response({"message": "Valid token, please reset your password.", "form": form.as_p()},
                                 status=status.HTTP_200_OK)
             else:
-                # Invalid token
+
                 return Response({"error": "The reset token is invalid or has expired."},
                                 status=status.HTTP_400_BAD_REQUEST)
 

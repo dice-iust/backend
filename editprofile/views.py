@@ -10,7 +10,7 @@ import jwt
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import UserProfileUpdateSerializer
+from .serializers import UserProfileUpdateSerializer, UserProfileUpdateSerializer2
 from django.conf import settings
 import jwt
 from django.contrib.auth import get_user_model
@@ -35,6 +35,7 @@ import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+
 @method_decorator(csrf_exempt, name="dispatch")
 class UserProfileUpdateAPIView(GenericAPIView):
     authentication_classes = [TokenAuthentication]
@@ -58,10 +59,7 @@ class UserProfileUpdateAPIView(GenericAPIView):
         serializer = UserProfileUpdateSerializer(user, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
     def put(self, request):
-
-
         user_token = request.COOKIES.get("access_token")
         if not user_token:
             return Response(
@@ -111,91 +109,23 @@ class putmethod(APIView):
         if error:
             return Response(error, status=status.HTTP_401_UNAUTHORIZED)
 
-        serializer = UserProfileUpdateSerializer(user, context={"request": request})
+        serializer = UserProfileUpdateSerializer2(
+            user, context={"request": self.request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
-        user_token = request.COOKIES.get("access_token")
-        if not user_token:
-            return Response(
-                {"detail": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+        user, error = self.authenticate_user(request)
+        if error:
+            return Response(error, status=status.HTTP_401_UNAUTHORIZED)
 
-
-        payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_model = get_user_model()
-        user = user_model.objects.filter(user_id=payload["user_id"]).first()
-
-        currentPassword = request.data.get('currentPassword')
-        if currentPassword:
-            if not user.check_password(currentPassword):
-                return Response(
-                    {"detail": "Current password is incorrect."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-
-        serializer = UserProfileUpdateSerializer(
-            user, data=request.data, partial=True, context={"request": request}
+        serializer = UserProfileUpdateSerializer2(
+            user, data=request.data, partial=True, context={"request": self.request}
         )
-
-
         if serializer.is_valid():
-            serializer.save()
+            user.profilePicture = serializer.validated_data["profilePicture"]
+            user.save()
+            serializer.save(profilePicture=request.data.get("profilePicture"))
             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        # user, error = self.authenticate_user(request)
-        # if error:
-        #     return Response(error, status=status.HTTP_401_UNAUTHORIZED)
-        #
-        # serializer = UserProfileUpdateSerializer(
-        #     user, data=request.data, partial=True, context={"request": request}
-        # )
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)  # Success response
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # Error response if validation fails
-
-
-
-class ChangePasswordAPIView(APIView):
-    authentication_classes = [TokenAuthentication]
-
-    def put(self, request):
-        user_token = request.COOKIES.get("access_token")
-        if not user_token:
-            return Response(
-                {"detail": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-
-        user_model = get_user_model()
-        user = user_model.objects.filter(user_id=payload["user_id"]).first()
-
-        # Verify current password
-        currentPassword = request.data.get('currentPassword')
-        if currentPassword:
-            if not user.check_password(currentPassword):
-                return Response(
-                    {"detail": "Current password is incorrect."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-        newPassword = request.data.get('newPassword')
-        if newPassword:
-            # Save new password if valid
-            user.set_password(newPassword)
-            user.save()
-            return Response(
-                {"detail": "Password changed successfully."},
-                status=status.HTTP_200_OK
-            )
-
-        return Response(
-            {"detail": "New password is required."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 

@@ -3,12 +3,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel, EmailAddress, TravellersGroup
+from .models import Travel, EmailAddress, TravellersGroup,UserRate
 from .serializers import (
     TravelSerializer,
     EmailSerializer,
     TravelGroupSerializer,
-    TravelPostGroupSerializer,TravelPostSerializer
+    TravelPostGroupSerializer,TravelPostSerializer,UserRateSerializer
 )
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -331,7 +331,7 @@ class TravelGroupView(APIView):
         )
 
 
-class PostTravelUserView(APIView):
+class AddTravelUserView(APIView):
     serializer_class = TravelPostGroupSerializer
     authentication_classes = [TokenAuthentication]
 
@@ -407,7 +407,83 @@ class PostTravelView(APIView):
             )
         serializer=TravelPostSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(admin=user)
+            serializer.save(admin=user,photo=request.data.get('photo'))
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors)
-        
+
+
+class UserRateView(APIView):
+    serializer_class = UserRateSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        user_token = request.COOKIES.get("access_token")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        rate = user.rate
+        return Response({"rate": rate}, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        user_token = request.COOKIES.get("access_token")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = UserRateSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['user_name']
+            rate_add = serializer.validated_data['rate']
+            if rate_add>5 or rate_add<0:
+                return Response("the rate should be 0 to 5")
+            add_rate_user = User.objects.filter(user_name=username).first()
+
+            if not add_rate_user:
+                return Response({"detail": "User to rate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            rate_user, created = UserRate.objects.get_or_create(user=add_rate_user)
+            if user in rate_user.rated_by.all():
+                return Response({"detail": "You have already rated this user."}, status=status.HTTP_400_BAD_REQUEST)
+
+            rate_user.rated_by.add(user)
+            rate_user.number_rated_by += 1
+
+            rated=add_rate_user.rate+rate_add
+
+            add_rate_user.rate = rated / rate_user.number_rated_by
+
+            add_rate_user.save()
+            rate_user.save()
+
+            return Response(f"You rated {username} successfully.", status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
