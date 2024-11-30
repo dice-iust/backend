@@ -91,16 +91,15 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
         fields = ["verification_code",]
 
     def validate(self,obj):
-        success = False
         verification_code = obj.get("verification_code")
         expiration_time = timezone.now() - timedelta(minutes=3)
         verification = EmailVerification.objects.filter(verification_code=verification_code).last()
         if not verification:
-            return Response({"success":success})
+            raise serializers.ValidationError("Verification record not found.")
 
         expiration_time = timezone.now() - timedelta(minutes=3)
         if verification.time_add < expiration_time:
-            return Response({"success": success})
+            raise serializers.ValidationError("Your code is expired.")
         return obj
 
 

@@ -9,8 +9,8 @@ import string
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, user_name, email, password=None,**extra_fields):
-        if not user_name or not email : 
-            raise ValueError('Users must have all fields') 
+        if not user_name or not email :
+            raise ValueError('Users must have all fields')
         email = self.normalize_email(email)
         user = self.model(
             user_name=user_name,
@@ -44,7 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    rate = models.IntegerField( default=0)
+
     USERNAME_FIELD = 'user_name'
     REQUIRED_FIELDS = ['email']
 
@@ -71,7 +71,6 @@ class EmailVerification(models.Model):
     password = models.CharField(max_length=100)  # Fixed typo here
     email = models.EmailField()
     time_add = models.DateTimeField(default=timezone.now)
-    token=models.CharField(max_length=32,null=True, blank=True)
     class Meta:
 
         unique_together = ("verification_code", "email")
