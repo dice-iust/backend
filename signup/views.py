@@ -159,10 +159,14 @@ class UserLogoutViewAPI(APIView):
 class UserRegistrationAndVerificationAPIView(APIView):
     serializer_class = UserRegistrationSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = [AllowAny,]
+    permission_classes = [
+        AllowAny,
+    ]
 
     def get(self, request):
-        content = {"message": "Hello!"}
+        content = {
+            "message": "Hello!",
+        }
         return Response(content)
 
     def post(self, request):
@@ -203,28 +207,34 @@ class UserRegistrationAndVerificationAPIView(APIView):
                     {"error": "This user_name and email already exist."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            verification_code = str(random.randint(100000, 999999))
-            if not serializer.validated_data["password"] or len(serializer.validated_data["password"]) < 6:
-                raise serializers.ValidationError("Password must be at least 6 characters")
-            if not re.search(r"[A-Za-z]", serializer.validated_data["password"]):
-                return Response(
-                    "Password must contain at least one letter"
+            verification_code = str(random.randint(1000, 9999))
+            if (
+                not serializer.validated_data["password"]
+                or len(serializer.validated_data["password"]) < 6
+            ):
+                raise serializers.ValidationError(
+                    "Password must be at least 6 characters"
                 )
+            if not re.search(r"[A-Za-z]", serializer.validated_data["password"]):
+                return Response("Password must contain at least one letter")
             if not re.search(r"[0-9]", serializer.validated_data["password"]):
                 return Response("Password must contain at least one number")
+            token = generate_secure_token()
             EmailVerification.objects.create(
                 email=serializer.validated_data["email"],
                 username=serializer.validated_data["user_name"],
                 password=serializer.validated_data["password"],
                 verification_code=verification_code,
+                token=token,
             )
             send_mail(
                 subject="Your Verification Code",
                 message=f"Your verification code is: {verification_code}",
-                from_email="triiptide@gmail.com",
+                from_email="your_email@example.com",
                 recipient_list=[serializer.validated_data["email"]],
             )
-            return Response({"email": serializer.validated_data["email"]})
+            context = {"email": serializer.validated_data["email"], "token": token}
+            return Response(context)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -232,26 +242,39 @@ class UserRegistrationAndVerificationAPIView(APIView):
 class EmailVerificationView(APIView):
     serializer = EmailVerificationSerializer
     permission_classes = [AllowAny]
-    authentication_classes = [TokenAuthentication,]
+    authentication_classes = [
+        TokenAuthentication,
+    ]
+
+    def get(self, request, *args, **kwargs):
+        token = request.headers.get("Authorization")
+        verification = EmailVerification.objects.filter(token=token).last()
+        if not verification:
+            return Response(
+                {"error": "No verification record found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            {
+                "email": verification.email,
+                "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}veri2.jpg",
+            }
+        )
+
     def post(self, request, *args, **kwargs):
         email_serializer = self.serializer(data=request.data)
         if email_serializer.is_valid():
-            email=request.data.get("email")
+            token = request.headers.get("Authorization")
             verification_send_code = email_serializer.validated_data[
                 "verification_code"
             ]
-            if not email:
-                verification = EmailVerification.objects.filter(
-                    verification_code=verification_send_code
-                ).last()
-            else:
-                verification = EmailVerification.objects.filter(email=email).last()
+            verification = EmailVerification.objects.filter(token=token).last()
             if not verification:
                 return Response(
-                    {"error": "No verification record found."},
+                    {"success": False},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if str(verification.verification_code) == str(verification_send_code):
+            if verification.verification_code == verification_send_code:
                 new_user = User.objects.create(
                     user_name=verification.username,
                     email=verification.email,
@@ -259,25 +282,21 @@ class EmailVerificationView(APIView):
                 )
                 new_user.set_password(verification.password)
                 new_user.save()
-                access_token = generate_access_token(new_user)
-                data = {"access_token": access_token}
-                response = Response(data, status=status.HTTP_201_CREATED)
+                user_access_token = generate_access_token(new_user)
+                response = Response()
                 response.set_cookie(
-                    key="access_token", value=access_token, httponly=True
+                    key="access_token", value=user_access_token, httponly=True
                 )
+                response.data = {"access_token": user_access_token, "success": True}
+                verification.delete()
                 return response
-
+            verification.delete()
             return Response(
-                {"error": "Invalid verification code."},
+                {"error": "Invalid verification code.", "success": False},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
+        return Response({"seccess": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PasswordResetRequestAPIView(GenericAPIView):
@@ -365,11 +384,6 @@ class PasswordResetVerifyAPIView(GenericAPIView):
             return Response({"message": "Password has been successfully updated."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
 
 
 # forgot_password:
