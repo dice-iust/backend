@@ -95,15 +95,12 @@ class EmailVerificationSerializer(serializers.ModelSerializer):
         expiration_time = timezone.now() - timedelta(minutes=3)
         verification = EmailVerification.objects.filter(verification_code=verification_code).last()
         if not verification:
-            raise serializers.ValidationError("Verification record not found.")
+            raise serializers.ValidationError({'success':False})
 
         expiration_time = timezone.now() - timedelta(minutes=3)
         if verification.time_add < expiration_time:
-            raise serializers.ValidationError("Your code is expired.")
+            raise serializers.ValidationError({"success": False})
         return obj
-
-
-
 
 
 from rest_framework import serializers
@@ -115,31 +112,6 @@ class PasswordResetVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
     reset_code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # class ForgotPasswordSerializer(serializers.Serializer):
