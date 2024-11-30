@@ -4,6 +4,8 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group
 from django.utils import timezone
 from datetime import timedelta
 from django.core.validators import MinValueValidator, MaxValueValidator
+import random
+import string
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, user_name, email, password=None,**extra_fields):
@@ -71,4 +73,22 @@ class EmailVerification(models.Model):
     time_add = models.DateTimeField(default=timezone.now)
     token=models.CharField(max_length=32,null=True, blank=True)
     class Meta:
+
         unique_together = ("verification_code", "email")
+
+
+
+
+class PasswordResetRequest(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reset_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Password reset request for {self.user.email}"
+
+    @staticmethod
+    def generate_reset_code():
+        return ''.join(random.choices(string.digits, k=6))
+
