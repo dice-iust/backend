@@ -19,7 +19,7 @@ class Travel(models.Model):
     )
     name = models.CharField(max_length=200,unique=True)
     start_date = models.DateField()
-    photo = models.ImageField(upload_to="profiles", blank=True)
+    photo = models.ImageField(upload_to="profiles", default="profiles/paize2_abK6hhZ.jpg")
     destination = models.CharField(max_length=200)
     mode = models.CharField(max_length=200, choices=TYPE_CHOICES)
     start_place = models.CharField(max_length=200)
