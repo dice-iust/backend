@@ -13,11 +13,12 @@ class Travel(models.Model):
         ("Plane", "Plane"),
         ("Car", "Car"),
     ]
-
+    STATUS_CHOICES = [('Private',"Private"),("Public","Public")]
     admin = models.ForeignKey(
         User, on_delete=models.PROTECT, related_name="admin_trips"
     )
     name = models.CharField(max_length=200,unique=True)
+    description = models.TextField(blank=True,null=True)
     start_date = models.DateField()
     photo = models.ImageField(upload_to="profiles", default="profiles/paize2_abK6hhZ.jpg")
     destination = models.CharField(max_length=200)
@@ -27,9 +28,11 @@ class Travel(models.Model):
     end_date = models.DateField()
     travellers = models.IntegerField(default=5)
     empty_travellers=models.IntegerField(default=1)
+    status = models.CharField(max_length=200, choices=STATUS_CHOICES,default="Private")
     rate=models.IntegerField(default=0)
     rated_by=models.IntegerField(default=0)
     rated_by_user = models.ManyToManyField(User, related_name="rated_by_user_travel", blank=True)
+
     def __str__(self):
         return self.destination
 
@@ -60,3 +63,23 @@ class UserRate(models.Model):
     number_rated_by=models.PositiveIntegerField(default=0)
     def __str__(self):
         return f"{self.user} rated by {self.rated_by} - {self.user.rate}"
+
+
+class TravelUserRate(models.Model):
+    travel = models.ForeignKey(
+        Travel, on_delete=models.CASCADE, related_name="user_ratings"
+    )
+    user_rated = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="ratings_received"
+    )
+    rated_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="ratings_given"
+    )
+    rate = models.IntegerField(
+        help_text="Rate between 1 and 5",default=0
+    )
+
+    def __str__(self):
+        return (
+            f"{self.rated_by} rated {self.user_rated} as {self.rate} in {self.travel}"
+        )
