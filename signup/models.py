@@ -44,7 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    rate = models.IntegerField(default=0)
+
     USERNAME_FIELD = 'user_name'
     REQUIRED_FIELDS = ['email']
 
@@ -77,6 +77,8 @@ class EmailVerification(models.Model):
         unique_together = ("verification_code", "email")
 
 
+
+
 class PasswordResetRequest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     reset_code = models.CharField(max_length=6)
@@ -89,3 +91,4 @@ class PasswordResetRequest(models.Model):
     @staticmethod
     def generate_reset_code():
         return ''.join(random.choices(string.digits, k=6))
+

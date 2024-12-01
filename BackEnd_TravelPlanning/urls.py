@@ -24,7 +24,7 @@ urlpatterns = [
     path("", include('signup.urls')),
     path("", include('Travels.urls')),
     path("editprofile/",include('editprofile.urls')),path("",include('Landing.urls')),
-    path('planner/', include('planner.urls')),path('',include('profilepage.urls'))
+    path('planner/', include('planner.urls')),
 ]
 
 if settings.DEBUG:
