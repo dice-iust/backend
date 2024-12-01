@@ -301,8 +301,8 @@ class TravelGroupView(APIView):
     authentication_classes = [TokenAuthentication]
 
     def get(self, request):
-        user_token = request.COOKIES.get("access_token")
-
+        # user_token = request.COOKIES.get("access_token")
+        user_token = request.headers.get('Authurization')
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
 

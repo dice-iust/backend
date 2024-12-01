@@ -16,7 +16,7 @@ from django.contrib.auth import authenticate
 from django.conf import settings
 from django.contrib.auth import get_user_model
 import jwt
-from .generate import generate_access_token
+from .generate import generate_access_token,generate_secure_token
 import random
 from django.core.mail import send_mail
 from .models import EmailVerification
