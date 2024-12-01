@@ -228,11 +228,25 @@ class UserRegistrationAndVerificationAPIView(APIView):
                 token=token,
             )
             send_mail(
-                subject="Your Verification Code",
-                message=f"Your verification code is: {verification_code}",
-                from_email="your_email@example.com",
+                subject="Verify Your Account - Your Verification Code",
+                message=f"""
+                Hello {serializer.validated_data["user_name"]},
+
+                Thank you for signing up! To complete your registration, please use the following verification code:
+
+                {verification_code}
+
+                Please enter this code on the verification page to activate your account.
+
+                If you did not request this email, please ignore it.
+
+                Best regards,  
+                The TripTide Team
+                """,
+                from_email="triiptide@gmail.com",
                 recipient_list=[serializer.validated_data["email"]],
             )
+
             context = {"email": serializer.validated_data["email"], "token": token}
             return Response(context)
 
