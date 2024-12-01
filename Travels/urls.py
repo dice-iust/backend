@@ -16,6 +16,7 @@ urlpatterns = [
     path('email/',EmailView.as_view()),
     path('mytravels/',TravelGroupView.as_view()),
     path("travels/adduser/",AddTravelUserView.as_view()),
-    path('myrate/',UserRateView.as_view()),path("travels/rating",TravelRateView.as_view())
+    path('myrate/',UserRateView.as_view()),path("travels/rating",TravelRateView.as_view()),
+    path('travels/users/rate/',TravelUserRateView.as_view()),
 ]
 

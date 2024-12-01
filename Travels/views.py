@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel, EmailAddress, TravellersGroup, UserRate
+from .models import Travel, EmailAddress, TravellersGroup, UserRate,TravelUserRate
 from .serializers import (
     TravelSerializer,
     EmailSerializer,
@@ -11,7 +11,7 @@ from .serializers import (
     TravelPostGroupSerializer,
     TravelPostSerializer,
     UserRateSerializer,
-    TravelRateSerializer,
+    TravelRateSerializer,TravelUserRateSerializer
 )
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -29,22 +29,23 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 User = get_user_model()
 import jwt
+from django.utils.timezone import now
 
 class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
     permission_classes = [AllowAny]
     filter_backends = (DjangoFilterBackend, SearchFilter)
-    search_fields = [
-        # "travellers",
-        # "admin__user_name",
-        # "mode",
-        # "destination",
-        # "transportation",
-        # "start_place",
-        "start_date","end_date"
-    ]
-    # filterset_fields = ("travellers", "admin__user_name", "mode")
+    # search_fields = [
+    #     # "travellers",
+    #     # "admin__user_name",
+    #     # "mode",
+    #     # "destination",
+    #     # "transportation",
+    #     # "start_place",
+    #     "start_date","end_date"
+    # ]
+    filterset_fields = ("start_date", "end_date")
 
 
 class TravelViewSpring(ListAPIView):
@@ -298,11 +299,10 @@ class SingleTravelView(APIView):
 
 class TravelGroupView(APIView):
     serializer_class = TravelGroupSerializer
-    authentication_classes = [TokenAuthentication]
 
     def get(self, request):
         # user_token = request.COOKIES.get("access_token")
-        user_token = request.headers.get('Authurization')
+        user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
 
@@ -319,17 +319,45 @@ class TravelGroupView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        travel_admin=Travel.objects.filter(admin=user)
-        user_groups = TravellersGroup.objects.filter(
-        Q(users=user) | Q(travel_is__in=travel_admin)
+        # travel_admin=Travel.objects.filter(admin=user)
+        # user_groups = TravellersGroup.objects.filter(
+        # Q(users=user) | Q(travel_is__in=travel_admin)
+        # )
+        serializer_past = None
+        serializer_current = None
+        serializer_future = None
+        past_trips = TravellersGroup.objects.filter(
+            Q(users=user) | Q(travel_is__admin=user), travel_is__end_date__lt=now()
         )
 
-
-        if user_groups.exists():
-            serializer = TravelGroupSerializer(
-                user_groups, many=True, context={"request": self.request}
+        current_trips = TravellersGroup.objects.filter(
+            Q(users=user) | Q(travel_is__admin=user),
+            travel_is__start_date__lte=now(),
+            travel_is__end_date__gte=now(),
+        )
+        future_trips = TravellersGroup.objects.filter(
+            Q(users=user) | Q(travel_is__admin=user), travel_is__start_date__gt=now()
+        )
+        if past_trips.exists():
+            serializer_past = TravelGroupSerializer(
+                past_trips, many=True, context={"request": self.request}
             )
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        if current_trips.exists():
+            serializer_current = TravelGroupSerializer(
+                current_trips, many=True, context={"request": self.request}
+            )
+        if future_trips.exists():
+            serializer_future = TravelGroupSerializer(
+                future_trips, many=True, context={"request": self.request}
+            )
+            return Response(
+                {
+                    "past": serializer_past.data if serializer_past else [],
+                    "current": serializer_current.data if serializer_current else [],
+                    "future": serializer_future.data if serializer_future else [],
+                },
+                status=status.HTTP_200_OK,
+            )
 
         return Response(
             {"detail": "No travel groups found for the user."},
@@ -376,6 +404,7 @@ class AddTravelUserView(APIView):
                 travel.save()
                 tg, created = TravellersGroup.objects.get_or_create(travel_is=travel)
                 tg.users.add(user)
+                TravelRateUser.objects.create(travel,user)
                 return Response(
                     {"detail": "Travel successfully booked."},
                     status=status.HTTP_201_CREATED,
@@ -393,7 +422,8 @@ class PostTravelView(APIView):
     serializer_class = TravelPostSerializer
     authenticated_classes = [TokenAuthentication]
     def post(self, request):
-        user_token = request.COOKIES.get("access_token")
+        # user_token = request.COOKIES.get("access_token")
+        user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
 
@@ -563,3 +593,13 @@ class TravelRateView(APIView):
         return Response(
             {"error": "Your input data is invalid."}, status=status.HTTP_400_BAD_REQUEST
         )
+class TravelUserRateView(APIView):
+    serializer_class = TravelUserRateSerializer
+    authentication_classes = [TokenAuthentication]
+    def get(self, request, *args, **kwargs):
+        user = request.headers.get("Authorization")
+        user_rate = TravelUserRate.objects.filter(user_rated=user)
+        if not user_rate:
+            return Response("there is no rating for you",status=status.HTTP_404_NOT_FOUND)
+        rating=TravelUserRateSerializer(user_rate)
+        return response(rating.data,status=status.HTTP_200_OK)
