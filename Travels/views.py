@@ -36,15 +36,15 @@ class AllTravels(generics.ListAPIView):
     permission_classes = [AllowAny]
     filter_backends = (DjangoFilterBackend, SearchFilter)
     search_fields = [
-        "travellers",
-        "admin__user_name",
-        "mode",
-        "destination",
-        "transportation",
-        "start_place",
-        "start_date__month",
+        # "travellers",
+        # "admin__user_name",
+        # "mode",
+        # "destination",
+        # "transportation",
+        # "start_place",
+        "start_date","end_date"
     ]
-    filterset_fields = ("travellers", "admin__user_name", "mode")
+    # filterset_fields = ("travellers", "admin__user_name", "mode")
 
 
 class TravelViewSpring(ListAPIView):

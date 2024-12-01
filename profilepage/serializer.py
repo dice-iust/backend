@@ -12,13 +12,11 @@ class ProfilePageSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "firstName",
+            "user_name",
             "profilePicture",
             "bio",
         ]
-        extra_kwargs = {
-            "password": {"required": False},
-        }
+
 
     def get_image(self, obj):
         if obj.profilePicture and hasattr(obj.profilePicture, "url"):
