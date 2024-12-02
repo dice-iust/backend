@@ -4,6 +4,7 @@ from rest_framework import status
 from Travels.models import Travel
 from .models import Expense
 from .serializers import ExpenseSerializer, SettlementSerializer
+from django.utils.timezone import now
 
 class CreateExpenseAPIView(generics.GenericAPIView):
     serializer_class = ExpenseSerializer
