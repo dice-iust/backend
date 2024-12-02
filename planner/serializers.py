@@ -1,12 +1,10 @@
 from rest_framework import serializers
-from .models import Expense , Settlement
-
+from .models import Expense, Settlement
 
 class ExpenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
         fields = ["id", "travel", "created_by", "amount", "description", "participants", "is_settled", "created_at"]
-
 
 class SettlementSerializer(serializers.ModelSerializer):
     class Meta:
