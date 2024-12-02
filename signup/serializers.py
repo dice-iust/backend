@@ -114,20 +114,5 @@ class PasswordResetVerifySerializer(serializers.Serializer):
     new_password = serializers.CharField(write_only=True)
 
 
-# class ForgotPasswordSerializer(serializers.Serializer):
-#     email = serializers.EmailField()
-#
-#     def validate(self, data):
-#         email = data.get('email')
-#         if not User.objects.filter(email=email).exists():
-#             raise serializers.ValidationError("No user found with this email address.")
-#         return data
-# class PasswordResetSerializer(serializers.Serializer):
-#     newPassword = serializers.CharField(max_length=100, min_length=6, write_only=True)
-#     confirm_password = serializers.CharField(max_length=100, min_length=6, write_only=True)
-#     def validate(self, data):
-#         newPassword = data.get("newPassword")
-#         confirm_password = data.get("confirm_password")
-#         if newPassword != confirm_password:
-#             raise serializers.ValidationError("Passwords do not match.")
-#         return data
+
+
