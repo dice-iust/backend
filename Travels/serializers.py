@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Travel,EmailAddress,TravellersGroup
+from .models import Travel,EmailAddress,TravellersGroup,TravelUserRate
 # from editprofile.models import UserProfile
 
 Users = get_user_model()
@@ -50,7 +50,35 @@ class TravelSerializer(serializers.ModelSerializer):
             "destination",
             "transportation",
             "start_place",
+            "mode","rate"
+        ]
+
+    def get_image(self, obj):
+        if obj.photo and hasattr(obj.photo, "url"):
+            return self.context["request"].build_absolute_uri(obj.photo.url)
+        return None
+
+
+class TravelGetSerializer(serializers.ModelSerializer):
+    admin = PhotoSerializer(context={"request": serializers.CurrentUserDefault()})
+    image_url = serializers.SerializerMethodField("get_image")
+
+    class Meta:
+        model = Travel
+        fields = [
+            "admin",
+            "image_url",
+            "name",
+            "travellers",
+            "start_date",
+            "end_date",
+            "start_place",
+            "destination",
+            "transportation",
             "mode",
+            "description",
+            "status",
+            "rate",
         ]
 
     def get_image(self, obj):
@@ -92,26 +120,42 @@ class TravelPostGroupSerializer(serializers.Serializer):
 
 
 class TravelPostSerializer(serializers.ModelSerializer):
-
+    photo=serializers.ImageField()
     class Meta:
         model = Travel
         fields = [
-            "travellers",
+            "photo",
             "name",
+            "travellers",
             "start_date",
             "end_date",
-            "photo",
-            "destination",
-            "transportation",
             "start_place",
-            "mode",
+            "destination",
+            "description",
+            "transportation",
+            "mode","status"
         ]
 
 
 class UserRateSerializer(serializers.Serializer):
     user_name=serializers.CharField(max_length=255)
     rate=serializers.IntegerField()
-    # def validate_rate(self, rate):
-    #     if rate<0 or rate>5:
-    #         return serializers.ValidationError("Rate is 0 to 5")
-    #     return rate
+
+class TravelRateSerializer(serializers.Serializer):
+    travel_name = serializers.CharField(max_length=255)
+    rate=serializers.IntegerField()
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Users
+        fields = ["user_name"]
+
+
+class TravelUserRateSerializer(serializers.ModelSerializer):
+    travel = TravelSerializer()
+    user_rated=UserSerializer()
+    rated_by=UserSerializer()
+    class Meta:
+        model = TravelUserRate
+        fields = ["travel","user_rated","rated_by","rate"]

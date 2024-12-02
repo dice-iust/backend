@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "signup",
     'django_filters',
     'Landing','Travels','editprofile',
+    'planner','profilepage'
 ]
 
 MIDDLEWARE = [
