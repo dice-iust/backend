@@ -36,7 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     city = models.CharField(max_length=100, blank=True, null=True)
     profilePicture = models.ImageField(
         upload_to="profile_pictures/",
-        default="profile_pictures/photo_1_2024-11-22_00-36-00.jpg",
+        default="profile_pictures/photo_1_2024-11-22_00-36-00.jpg",blank=True
     )
     gender = models.CharField(max_length=10, choices=(('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')),
                               blank=True, null=True)

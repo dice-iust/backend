@@ -355,6 +355,7 @@ class TravelGroupView(APIView):
                     "past": serializer_past.data if serializer_past else [],
                     "current": serializer_current.data if serializer_current else [],
                     "future": serializer_future.data if serializer_future else [],
+                    "photo":f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}travels.jpg"
                 },
                 status=status.HTTP_200_OK,
             )
