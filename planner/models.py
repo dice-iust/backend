@@ -1,26 +1,27 @@
+from datetime import timezone
+
+from Travels.models import Travel  # Travel already imported as travel_is
+from django.contrib.auth import get_user_model
 from django.db import models
-from django.conf import settings
-from Travels.models import Travel
-from django.utils.timezone import now
-User = settings.AUTH_USER_MODEL
+
+users = get_user_model()
 
 class Expense(models.Model):
-    travel = models.ForeignKey(Travel, on_delete=models.CASCADE, related_name="expenses")
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="created_expenses")
+    travel_is = models.ForeignKey(Travel, on_delete=models.CASCADE, related_name="expenses")
+    created_by = models.ForeignKey(users, on_delete=models.PROTECT, related_name="created_expenses")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=255)
-    participants = models.ManyToManyField(User, related_name="shared_expenses")
+    participants = models.ManyToManyField(users, related_name="shared_expenses")
     is_settled = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=now)
+    created_at = models.DateTimeField(default=timezone)
 
     def split_amount(self):
         return self.amount / self.participants.count()
 
-
 class Settlement(models.Model):
-    payer = models.ForeignKey(User, on_delete=models.PROTECT, related_name="payer_settlements")
-    receiver = models.ForeignKey(User, on_delete=models.PROTECT, related_name="receiver_settlements")
-    travel = models.ForeignKey(Travel, on_delete=models.CASCADE, related_name="settlements")
+    payer = models.ForeignKey(users, on_delete=models.PROTECT, related_name="payer_settlements")
+    receiver = models.ForeignKey(users, on_delete=models.PROTECT, related_name="receiver_settlements")
+    travel_is = models.ForeignKey(Travel, on_delete=models.CASCADE, related_name="settlements")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    date = models.DateTimeField(default=now)
+    date = models.DateTimeField(default=timezone)
     is_paid = models.BooleanField(default=False)
