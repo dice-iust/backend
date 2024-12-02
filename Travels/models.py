@@ -20,7 +20,7 @@ class Travel(models.Model):
     name = models.CharField(max_length=200,unique=True)
     description = models.TextField(blank=True,null=True)
     start_date = models.DateField()
-    photo = models.ImageField(upload_to="profiles", default="profiles/paize2_abK6hhZ.jpg")
+    photo = models.ImageField(upload_to="profiles", default="profiles/traveldefualt.jpg",blank=True)
     destination = models.CharField(max_length=200)
     mode = models.CharField(max_length=200, choices=TYPE_CHOICES)
     start_place = models.CharField(max_length=200)
@@ -83,3 +83,4 @@ class TravelUserRate(models.Model):
         return (
             f"{self.rated_by} rated {self.user_rated} as {self.rate} in {self.travel}"
         )
+
