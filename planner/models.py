@@ -16,7 +16,6 @@ class Expense(models.Model):
     def split_amount(self):
         return self.amount / self.participants.count()
 
-
 class Settlement(models.Model):
     payer = models.ForeignKey(User, on_delete=models.PROTECT, related_name="payer_settlements")
     receiver = models.ForeignKey(User, on_delete=models.PROTECT, related_name="receiver_settlements")
