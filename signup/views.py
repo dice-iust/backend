@@ -313,11 +313,12 @@ class EmailVerificationView(APIView):
         return Response({"seccess": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+
 class PasswordResetRequestAPIView(GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
 
     def post(self, request, *args, **kwargs):
-
         serializer = self.get_serializer(data=request.data)
 
         if serializer.is_valid():
@@ -325,7 +326,8 @@ class PasswordResetRequestAPIView(GenericAPIView):
             try:
                 user = User.objects.get(email=email)
             except User.DoesNotExist:
-                return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "User with this email does not exist.", "success": False},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             reset_code = PasswordResetRequest.generate_reset_code()
             reset_request = PasswordResetRequest.objects.create(user=user, reset_code=reset_code)
@@ -338,15 +340,18 @@ class PasswordResetRequestAPIView(GenericAPIView):
                 fail_silently=False,
             )
 
-            return Response({"message": "A reset code has been sent to your email."}, status=status.HTTP_200_OK)
+            return Response({"message": "A reset code has been sent to your email.", "success": True},
+                            status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"errors": serializer.errors, "success": False},
+                        status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, *args, **kwargs):
         email = request.query_params.get('email', None)
 
         if not email:
-            return Response({"Email parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Email parameter is required.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(email=email)
@@ -356,16 +361,20 @@ class PasswordResetRequestAPIView(GenericAPIView):
                 return Response({
                     "message": "Password reset request is pending.",
                     "reset_code": reset_request.reset_code,
-                    "status": "pending"
+                    "status": "pending",
+                    "success": True
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({
                     "message": "No pending password reset request found.",
-                    "status": "completed or not requested"
+                    "status": "completed or not requested",
+                    "success": True
                 }, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
-            return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "User with this email does not exist.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
+
 
 class PasswordResetVerifyAPIView(GenericAPIView):
     serializer_class = PasswordResetVerifySerializer
@@ -374,7 +383,8 @@ class PasswordResetVerifyAPIView(GenericAPIView):
         email = request.query_params.get('email', None)
 
         if not email:
-            return Response({"error": "Email parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Email parameter is required.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(email=email)
@@ -384,19 +394,21 @@ class PasswordResetVerifyAPIView(GenericAPIView):
                 return Response({
                     "message": "Password reset request is pending.",
                     "reset_code": reset_request.reset_code,
-                    "status": "pending"
+                    "status": "pending",
+                    "success": True
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({
                     "message": "No pending password reset request found.",
-                    "status": "completed or not requested"
+                    "status": "completed or not requested",
+                    "success": True
                 }, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
-            return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "User with this email does not exist.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request, *args, **kwargs):
-
         serializer = self.get_serializer(data=request.data)
 
         if serializer.is_valid():
@@ -405,23 +417,21 @@ class PasswordResetVerifyAPIView(GenericAPIView):
             new_password = serializer.validated_data['new_password']
 
             try:
-
                 reset_request = PasswordResetRequest.objects.get(user__email=email, reset_code=reset_code,
                                                                  is_verified=False)
             except PasswordResetRequest.DoesNotExist:
-                return Response({"error": "Invalid or expired reset code."}, status=status.HTTP_400_BAD_REQUEST)
-
+                return Response({"error": "Invalid or expired reset code.", "success": False},
+                                status=status.HTTP_400_BAD_REQUEST)
 
             user = reset_request.user
             user.set_password(new_password)
             user.save()
 
-
             reset_request.is_verified = True
             reset_request.save()
 
-            return Response({"message": "Password has been successfully updated."}, status=status.HTTP_200_OK)
+            return Response({"message": "Password has been successfully updated.", "success": True},
+                            status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+        return Response({"errors": serializer.errors, "success": False},
+                        status=status.HTTP_400_BAD_REQUEST)

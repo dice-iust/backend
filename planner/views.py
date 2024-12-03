@@ -10,7 +10,7 @@ class CreateExpenseAPIView(generics.GenericAPIView):
 
     def post(self, request, travel_name):
         try:
-            travel_is = Travel.objects.get(pk=travel_name)
+            travel_is = Travel.objects.get(name=travel_name)
         except Travel.DoesNotExist:
             return Response({"error": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -25,7 +25,7 @@ class CreateExpenseAPIView(generics.GenericAPIView):
 class DebtsAPIView(generics.GenericAPIView):
     def get(self, request, travel_name):
         try:
-            travel_is = Travel.objects.get(pk=travel_name)
+            travel_is = Travel.objects.get(name=travel_name)
         except Travel.DoesNotExist:
             return Response({"error": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
 
