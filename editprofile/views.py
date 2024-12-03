@@ -123,9 +123,11 @@ class putmethod(APIView):
             user, data=request.data, partial=True, context={"request": self.request}
         )
         if serializer.is_valid():
-            user.profilePicture = serializer.validated_data["profilePicture"]
+            if not request.data.get("profilePicture"):
+                user.save()
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
             user.save()
             serializer.save(profilePicture=request.data.get("profilePicture"))
             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
