@@ -65,22 +65,38 @@ class UserRate(models.Model):
         return f"{self.user} rated by {self.rated_by} - {self.user.rate}"
 
 
-class TravelUserRate(models.Model):
+class TravelUserRateMoney(models.Model):
     travel = models.ForeignKey(
-        Travel, on_delete=models.CASCADE, related_name="user_ratings"
+        Travel, on_delete=models.CASCADE, related_name="user_ratings_money"
     )
     user_rated = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="ratings_received"
+        User, on_delete=models.CASCADE, related_name="ratings_received_money"
     )
-    rated_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="ratings_given"
+    rated_by = models.ManyToManyField(
+        User,  related_name="ratings_given_money"
     )
-    rate = models.IntegerField(
-        help_text="Rate between 1 and 5",default=0
-    )
+    rate = models.IntegerField(blank=True, default=0)
+    
 
     def __str__(self):
         return (
             f"{self.rated_by} rated {self.user_rated} as {self.rate} in {self.travel}"
         )
 
+
+class TravelUserRateSleep(models.Model):
+    travel = models.ForeignKey(
+        Travel, on_delete=models.CASCADE, related_name="user_ratings_sleep"
+    )
+    user_rated = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="ratings_received_sleep"
+    )
+    rated_by = models.ManyToManyField(
+        User, related_name="ratings_given_sleep"
+    )
+    rate = models.IntegerField(blank=True, default=0)
+
+    def __str__(self):
+        return (
+            f"{self.rated_by} rated {self.user_rated} as {self.rate} in {self.travel}"
+        )

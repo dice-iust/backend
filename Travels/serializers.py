@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Travel,EmailAddress,TravellersGroup,TravelUserRate
+from .models import Travel,EmailAddress,TravellersGroup,TravelUserRateMoney,TravelUserRateSleep
 # from editprofile.models import UserProfile
 
 Users = get_user_model()
@@ -152,10 +152,27 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["user_name"]
 
 
-class TravelUserRateSerializer(serializers.ModelSerializer):
+class TravelUserRateMoneySerializer(serializers.ModelSerializer):
     travel = TravelSerializer()
     user_rated=UserSerializer()
     rated_by=UserSerializer()
     class Meta:
-        model = TravelUserRate
+        model = TravelUserRateMoney
         fields = ["travel","user_rated","rated_by","rate"]
+
+
+class TravelUserRateSleepSerializer(serializers.ModelSerializer):
+    travel = TravelSerializer()
+    user_rated = UserSerializer()
+    rated_by = UserSerializer()
+
+    class Meta:
+        model = TravelUserRateSleep
+        fields = ["travel", "user_rated", "rated_by", "rate"]
+
+
+class UserMiddleRateSerializer(serializers.Serializer):
+    travel_name = serializers.CharField(max_length=255)
+    user_name = serializers.CharField(max_length=255)
+    rate_sleep = serializers.IntegerField(required=False)
+    rate_money = serializers.IntegerField(required=False)

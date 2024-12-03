@@ -47,7 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    rate = models.IntegerField(default=0)
+    rate = models.IntegerField(blank=True, null=True, default=0)
     USERNAME_FIELD = 'user_name'
     REQUIRED_FIELDS = ['email']
 
