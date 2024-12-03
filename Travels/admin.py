@@ -3,4 +3,5 @@ from .models import *
 admin.site.register(TravellersGroup)
 admin.site.register(Travel)
 admin.site.register(UserRate)
-admin.site.register(TravelUserRate)
+admin.site.register(TravelUserRateMoney)
+admin.site.register(TravelUserRateSleep)
