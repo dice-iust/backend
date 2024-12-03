@@ -120,7 +120,7 @@ class TravelPostGroupSerializer(serializers.Serializer):
 
 
 class TravelPostSerializer(serializers.ModelSerializer):
-    photo=serializers.ImageField()
+    photo=serializers.ImageField(required=False)
     class Meta:
         model = Travel
         fields = [

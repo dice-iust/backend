@@ -447,6 +447,11 @@ class PostTravelView(APIView):
             )
         serializer=TravelPostSerializer(data=request.data)
         if serializer.is_valid():
+            if not request.data.get('photo'):
+                travel =  serializer.save(admin=user)
+                TravellersGroup.objects.create(travel_is=travel)
+
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             travel =  serializer.save(admin=user,photo=request.data.get('photo'))
             TravellersGroup.objects.create(travel_is=travel)
 
