@@ -462,9 +462,10 @@ class PostTravelView(APIView):
 class TravelUserRateView(APIView):
     authentication_classes = [TokenAuthentication]
 
-    def get(self, request, *args, **kwargs):
-        user_token = request.headers.get("Authorization")
 
+    def get(self,request):
+
+        user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Authorization token not provided.")
 
@@ -483,43 +484,33 @@ class TravelUserRateView(APIView):
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        travel_name = request.data.get("travel_name")
-        if not travel_name:
-            return Response(
-                {"detail": "Travel name is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        money_rates = TravelUserRateMoney.objects.filter(user_rated=user)
+        sleep_rates = TravelUserRateSleep.objects.filter(user_rated=user)
+        rates_summary = {}
+        for money_rate in money_rates:
+            travel = money_rate.travel
+            if travel.name not in rates_summary:
+                rates_summary[travel.name] = {"money_rate": None, "sleep_rate": None}
 
-        travel = Travel.objects.filter(name=travel_name).first()
-        if not travel:
-            return Response(
-                {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            rates_summary[travel.name]["money_rate"] = money_rate.rate
 
-        user_money_rate = TravelUserRateMoney.objects.filter(
-            user_rated=user, travel=travel
-        ).first()
-        user_sleep_rate = TravelUserRateSleep.objects.filter(
-            user_rated=user, travel=travel
-        ).first()
-        money_rate = user_money_rate.rate if user_money_rate else None
-        sleep_rate = user_sleep_rate.rate if user_sleep_rate else None
+        for sleep_rate in sleep_rates:
+            travel = sleep_rate.travel
+            if travel.name not in rates_summary:
+                rates_summary[travel.name] = {"money_rate": None, "sleep_rate": None}
+
+            rates_summary[travel.name]["sleep_rate"] = sleep_rate.rate
         user_rate = user.rate if user.rate is not None else None
+        for travel_name in rates_summary:
+            rates_summary[travel_name]["user_rate"] = user_rate
 
-        if money_rate is None and sleep_rate is None:
+        if not rates_summary:
             return Response(
-                {"detail": "No ratings found for the user in this travel."},
+                {"detail": "No ratings found for the user."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        return Response(
-            {
-                "money_rate": money_rate,
-                "sleep_rate": sleep_rate,
-                "user_rate": user_rate,
-            },
-            status=status.HTTP_200_OK,
-        )
 
+        return Response({"rates": rates_summary}, status=status.HTTP_200_OK)
 
 class UserSMRateView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -578,7 +569,6 @@ class UserSMRateView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-    
         if TravelUserRateMoney.objects.filter(
             travel=travel, user_rated=user_rated, rated_by__in=[user]
         ).exists():
@@ -773,3 +763,60 @@ class UserSMRateView(APIView):
 #         return Response(
 #             {"error": "Your input data is invalid."}, status=status.HTTP_400_BAD_REQUEST
 #         )
+# def get(self, request, *args, **kwargs):
+#     user_token = request.headers.get("Authorization")
+
+#     if not user_token:
+#         raise AuthenticationFailed("Authorization token not provided.")
+
+#     try:
+#         payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+#     except jwt.ExpiredSignatureError:
+#         raise AuthenticationFailed("Token has expired.")
+#     except jwt.InvalidTokenError:
+#         raise AuthenticationFailed("Invalid token.")
+
+#     user_model = get_user_model()
+#     user = user_model.objects.filter(user_id=payload["user_id"]).first()
+
+#     if not user:
+#         return Response(
+#             {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+#         )
+
+#     travel_name = request.data.get("travel_name")
+#     if not travel_name:
+#         return Response(
+#             {"detail": "Travel name is required."},
+#             status=status.HTTP_400_BAD_REQUEST,
+#         )
+
+#     travel = Travel.objects.filter(name=travel_name).first()
+#     if not travel:
+#         return Response(
+#             {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+#         )
+
+#     user_money_rate = TravelUserRateMoney.objects.filter(
+#         user_rated=user, travel=travel
+#     ).first()
+#     user_sleep_rate = TravelUserRateSleep.objects.filter(
+#         user_rated=user, travel=travel
+#     ).first()
+#     money_rate = user_money_rate.rate if user_money_rate else None
+#     sleep_rate = user_sleep_rate.rate if user_sleep_rate else None
+#     user_rate = user.rate if user.rate is not None else None
+
+#     if money_rate is None and sleep_rate is None:
+#         return Response(
+#             {"detail": "No ratings found for the user in this travel."},
+#             status=status.HTTP_404_NOT_FOUND,
+#         )
+#     return Response(
+#         {
+#             "money_rate": money_rate,
+#             "sleep_rate": sleep_rate,
+#             "user_rate": user_rate,
+#         },
+# #         status=status.HTTP_200_OK,
+#     )
