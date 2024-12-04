@@ -462,7 +462,6 @@ class PostTravelView(APIView):
 class TravelUserRateView(APIView):
     authentication_classes = [TokenAuthentication]
 
-
     def get(self,request):
 
         user_token = request.headers.get("Authorization")
@@ -510,7 +509,14 @@ class TravelUserRateView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({"rates": rates_summary}, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "rates": rates_summary,
+                "Welltravel": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Welltravel.jpg",
+                "Goodpay" : f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Goodpay.jpg","Overall": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Overall.jpg",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 class UserSMRateView(APIView):
     authentication_classes = [TokenAuthentication]
