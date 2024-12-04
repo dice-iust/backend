@@ -13,7 +13,7 @@ urlpatterns = [
     path("travels/short/",TravelViewShort.as_view()),
     path("travels/economy/",TravelVieweconomy.as_view()),
     path("travels/add/",PostTravelView.as_view()),
-    path('email/',EmailView.as_view()),
+    path('email/',EmailView.as_view()),path("rate/",UserFullyRateView.as_view()),
     path('mytravels/',TravelGroupView.as_view()),path('travels/myrate/',TravelUserRateView.as_view()),
     path("travels/adduser/",AddTravelUserView.as_view()),path('travels/rate/user/',UserSMRateView.as_view()),
     # path('myrate/',UserRateView.as_view()),path("travels/rating",TravelRateView.as_view()),
