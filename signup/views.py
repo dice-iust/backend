@@ -2,11 +2,9 @@ from django.shortcuts import render
 from .serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
-    UserViewSerializer,
-    EmailVerificationSerializer,
-    ForgotPasswordSerializer,
-    PasswordResetSerializer,
+    UserViewSerializer, EmailVerificationSerializer
 )
+from rest_framework.generics import GenericAPIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
@@ -18,7 +16,7 @@ from django.contrib.auth import authenticate
 from django.conf import settings
 from django.contrib.auth import get_user_model
 import jwt
-from .generate import generate_access_token, generate_secure_token
+from .generate import generate_access_token,generate_secure_token
 import random
 from django.core.mail import send_mail
 from .models import EmailVerification
@@ -28,7 +26,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 import re
-import uuid
+from .serializers import PasswordResetRequestSerializer, PasswordResetVerifySerializer
+from .models import PasswordResetRequest
 
 User = get_user_model()
 
@@ -36,9 +35,7 @@ User = get_user_model()
 class UserRegistrationAPIView(APIView):
     serializer_class = UserRegistrationSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = [
-        AllowAny,
-    ]
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         content = {"message": "Hello!"}
@@ -48,24 +45,19 @@ class UserRegistrationAPIView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
             # Check if the user already exists
-            if (
-                User.objects.filter(
+            if User.objects.filter(
                     user_name=serializer.validated_data["user_name"]
-                ).exists()
-                and not User.objects.filter(
-                    email=serializer.validated_data["email"]
-                ).exists()
-            ):
+            ).exists() and not User.objects.filter(email=serializer.validated_data["email"]).exists():
                 return Response(
                     {"error": "This user_name already exists."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if (
-                User.objects.filter(email=serializer.validated_data["email"]).exists()
-                and not User.objects.filter(
-                    user_name=serializer.validated_data["user_name"]
-                ).exists()
+                    User.objects.filter(email=serializer.validated_data["email"]).exists()
+                    and not User.objects.filter(
+                user_name=serializer.validated_data["user_name"]
+            ).exists()
             ):
                 return Response(
                     {"error": "This email already exists."},
@@ -73,10 +65,10 @@ class UserRegistrationAPIView(APIView):
                 )
 
             if (
-                User.objects.filter(email=serializer.validated_data["email"]).exists()
-                and User.objects.filter(
-                    user_name=serializer.validated_data["user_name"]
-                ).exists()
+                    User.objects.filter(email=serializer.validated_data["email"]).exists()
+                    and User.objects.filter(
+                user_name=serializer.validated_data["user_name"]
+            ).exists()
             ):
                 return Response(
                     {"error": "This user_name and email already exist."},
@@ -98,16 +90,12 @@ class UserRegistrationAPIView(APIView):
 class UserLoginAPIView(APIView):
     serializer_class = UserLoginSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = [
-        AllowAny,
-    ]
-
+    permission_classes = [AllowAny,]
     def get(self, request):
         photo_response = {
             "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}login.jpg"
         }
         return Response(photo_response)
-
     def post(self, request):
         user_name = request.data.get("user_name", None)
         user_password = request.data.get("password", None)
@@ -136,9 +124,7 @@ class UserLoginAPIView(APIView):
 
 class UserViewAPI(APIView):
     authentication_classes = (TokenAuthentication,)
-    permission_classes = [
-        AllowAny,
-    ]
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         user_token = request.COOKIES.get("access_token")
@@ -156,9 +142,7 @@ class UserViewAPI(APIView):
 
 class UserLogoutViewAPI(APIView):
     authentication_classes = (TokenAuthentication,)
-    permission_classes = [
-        AllowAny,
-    ]
+    permission_classes = [AllowAny,]
 
     def get(self, request):
         user_token = request.COOKIES.get("access_token", None)
@@ -244,11 +228,25 @@ class UserRegistrationAndVerificationAPIView(APIView):
                 token=token,
             )
             send_mail(
-                subject="Your Verification Code",
-                message=f"Your verification code is: {verification_code}",
-                from_email="your_email@example.com",
+                subject="Verify Your Account - Your Verification Code",
+                message=f"""
+                Hello {serializer.validated_data["user_name"]},
+
+                Thank you for signing up! To complete your registration, please use the following verification code:
+
+                {verification_code}
+
+                Please enter this code on the verification page to activate your account.
+
+                If you did not request this email, please ignore it.
+
+                Best regards,  
+                The TripTide Team
+                """,
+                from_email="triiptide@gmail.com",
                 recipient_list=[serializer.validated_data["email"]],
             )
+
             context = {"email": serializer.validated_data["email"], "token": token}
             return Response(context)
 
@@ -312,66 +310,128 @@ class EmailVerificationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response({"seccess":False}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"seccess": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# forgot_password:
-class ForgotPasswordView(APIView):
-    permission_classes = ((AllowAny),)
-    serializer_class = ForgotPasswordSerializer
 
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+
+class PasswordResetRequestAPIView(GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
         if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            user = User.objects.get(email=email)
-            token = PasswordResetTokenGenerator().make_token(user)
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({"error": "User with this email does not exist.", "success": False},
+                                status=status.HTTP_400_BAD_REQUEST)
 
-            reset_link = request.build_absolute_uri(
-                reverse(
-                    "password-reset-confirm", kwargs={"uidb64": uid, "token": token}
-                )
-            )
+            reset_code = PasswordResetRequest.generate_reset_code()
+            reset_request = PasswordResetRequest.objects.create(user=user, reset_code=reset_code)
 
             send_mail(
-                subject="Password Reset Request",
-                message=f"Click the link to reset your password: {reset_link}",
-                from_email="triiptide@gmail.com",
-                recipient_list=[email],
+                'Password Reset Code',
+                f'Your password reset code is: {reset_code}',
+                'from@example.com',
+                [email],
+                fail_silently=False,
             )
-            return Response(
-                {"message": "Password reset link sent to your email."},
-                status=status.HTTP_200_OK,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({"message": "A reset code has been sent to your email.", "success": True},
+                            status=status.HTTP_200_OK)
+
+        return Response({"errors": serializer.errors, "success": False},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, *args, **kwargs):
+        email = request.query_params.get('email', None)
+
+        if not email:
+            return Response({"error": "Email parameter is required.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            reset_request = PasswordResetRequest.objects.filter(user=user, is_verified=False).first()
+
+            if reset_request:
+                return Response({
+                    "message": "Password reset request is pending.",
+                    "reset_code": reset_request.reset_code,
+                    "status": "pending",
+                    "success": True
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "message": "No pending password reset request found.",
+                    "status": "completed or not requested",
+                    "success": True
+                }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
-class PasswordResetConfirmView(APIView):
-    permission_classes = ((AllowAny),)
-    serializer_class = PasswordResetSerializer
+class PasswordResetVerifyAPIView(GenericAPIView):
+    serializer_class = PasswordResetVerifySerializer
 
-    def post(self, request, uidb64, token):
-        serializer = self.serializer_class(data=request.data)
+    def get(self, request, *args, **kwargs):
+        email = request.query_params.get('email', None)
+
+        if not email:
+            return Response({"error": "Email parameter is required.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            reset_request = PasswordResetRequest.objects.filter(user=user, is_verified=False).first()
+
+            if reset_request:
+                return Response({
+                    "message": "Password reset request is pending.",
+                    "reset_code": reset_request.reset_code,
+                    "status": "pending",
+                    "success": True
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "message": "No pending password reset request found.",
+                    "status": "completed or not requested",
+                    "success": True
+                }, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist.", "success": False},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
         if serializer.is_valid():
+            email = serializer.validated_data['email']
+            reset_code = serializer.validated_data['reset_code']
+            new_password = serializer.validated_data['new_password']
+
             try:
-                uid = force_str(urlsafe_base64_decode(uidb64))
-                user = User.objects.get(pk=uid)
+                reset_request = PasswordResetRequest.objects.get(user__email=email, reset_code=reset_code,
+                                                                 is_verified=False)
+            except PasswordResetRequest.DoesNotExist:
+                return Response({"error": "Invalid or expired reset code.", "success": False},
+                                status=status.HTTP_400_BAD_REQUEST)
 
-                if not PasswordResetTokenGenerator().check_token(user, token):
-                    return Response(
-                        {"error": "Invalid or expired token."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+            user = reset_request.user
+            user.set_password(new_password)
+            user.save()
 
-                newPassword = serializer.validated_data["newPassword"]
-                user.set_password(newPassword)
-                user.save()
-                return Response(
-                    {"message": "Password reset successful."}, status=status.HTTP_200_OK
-                )
-            except (User.DoesNotExist, ValueError):
-                return Response(
-                    {"error": "Invalid user."}, status=status.HTTP_404_NOT_FOUND
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            reset_request.is_verified = True
+            reset_request.save()
+
+            return Response({"message": "Password has been successfully updated.", "success": True},
+                            status=status.HTTP_200_OK)
+
+        return Response({"errors": serializer.errors, "success": False},
+                        status=status.HTTP_400_BAD_REQUEST)
