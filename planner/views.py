@@ -5,8 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from .models import Expense, TravellersGroup
+from .models import Expense
 from .serializers import ExpenseSerializer
+from Travels.models import TravellersGroup, Travel
 
 User = get_user_model()
 
@@ -15,7 +16,7 @@ class CreateExpenseAPIView(APIView):
 
     def post(self, request, travel_name):
 
-        user_token = request.COOKIES.get("access_token")
+        user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
 
@@ -27,13 +28,14 @@ class CreateExpenseAPIView(APIView):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-        user = User.objects.filter(user_name=payload["user_name"]).first()
+        uuser = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
         try:
-            travel_group = TravellersGroup.objects.get(travel_is__name=travel_name)
+            travel_pay=Travel.objects.filter(name=travel_name)
+            travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
             return Response({"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -48,19 +50,9 @@ class CreateExpenseAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-import jwt
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from .models import Expense, TravellersGroup
-
-User = get_user_model()
-
 class DebtsAPIView(APIView):
     def get(self, request, travel_name, *args, **kwargs):
-        user_token = request.COOKIES.get("access_token")
+        user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
 
@@ -71,7 +63,7 @@ class DebtsAPIView(APIView):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-        user = User.objects.filter(user_name=payload["user_name"]).first()
+        user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             raise AuthenticationFailed("User not found.")
         try:
@@ -86,7 +78,7 @@ class DebtsAPIView(APIView):
 
         expenses = Expense.objects.filter(travel=travel_group)
         total_expenses = sum(expense.amount for expense in expenses)
-        participants = set(user for expense in expenses for user in expense.participants.all())
+        participants = set(travel_group.users.all())
 
         if not participants:
             return Response({"message": "No participants found."}, status=status.HTTP_400_BAD_REQUEST)
@@ -121,10 +113,9 @@ class SettleDebtAPIView(APIView):
 
     def post(self, request):
 
-        user_token = request.COOKIES.get("access_token")
+        user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
-
 
         try:
             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
@@ -133,11 +124,9 @@ class SettleDebtAPIView(APIView):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-
-        user = User.objects.filter(user_name=payload["user_name"]).first()
+        user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
 
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
