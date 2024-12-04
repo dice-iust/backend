@@ -15,11 +15,9 @@ class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
 
     def post(self, request, travel_name):
-
         user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
-
         try:
             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
@@ -27,15 +25,16 @@ class CreateExpenseAPIView(APIView):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-        uuser = User.objects.filter(user_id=payload["user_id"]).first()
+        user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
         try:
-            travel_pay=Travel.objects.filter(name=travel_name)
+            travel_pay = Travel.objects.get(name=travel_name)
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
             return Response({"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
+        except TravellersGroup.DoesNotExist:
+            return Response({"message": "Travellers Group not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if user not in travel_group.users.all():
             return Response({"message": "You are not a participant in this travel."}, status=status.HTTP_403_FORBIDDEN)
@@ -88,7 +87,7 @@ class DebtsAPIView(APIView):
             settlements = Settlement.objects.filter(
                 travel=travel_group, receiver=user, payer=users
             )
-            if users==user:
+            if users == user:
                 #     user_debts[users.user_name] = {
                 #         "total_share": share_per_to_me,
                 #         "amount_paid": share_per_to_me,
@@ -113,7 +112,7 @@ class DebtsAPIView(APIView):
 
         user_should_pay={}
         for part in participants:
-            if part==user:
+            if part == user:
                 #     user_should_pay[part.user_name] = {
                 #         "total_share": others_expenses,
                 #         "amount_paid": others_expenses,
