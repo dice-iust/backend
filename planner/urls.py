@@ -1,3 +1,4 @@
+# urls.py در اپ planner
 from django.urls import path
 from .views import CreateExpenseAPIView, DebtsAPIView, SettleDebtAPIView
 
