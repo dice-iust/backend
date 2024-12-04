@@ -513,7 +513,8 @@ class TravelUserRateView(APIView):
             {
                 "rates": rates_summary,
                 "Welltravel": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Welltravel.jpg",
-                "Goodpay" : f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Goodpay.jpg","Overall": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Overall.jpg",
+                "Goodpay" : f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Goodpay.jpg",
+                "Overall": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Overall.jpg",
             },
             status=status.HTTP_200_OK,
         )
