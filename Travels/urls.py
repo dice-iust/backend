@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import *
-urlpatterns = [ 
+urlpatterns = [
     path("travels/",TravelViewPopular.as_view()),
     path("travels/<int:pk>/",SingleTravelView.as_view()),
     path('travels/filter/',AllTravels.as_view()),
@@ -16,6 +16,7 @@ urlpatterns = [
     path('email/',EmailView.as_view()),
     path('mytravels/',TravelGroupView.as_view()),path('travels/myrate/',TravelUserRateView.as_view()),
     path("travels/adduser/",AddTravelUserView.as_view()),path('travels/rate/user/',UserSMRateView.as_view()),
+    path("rate/",UserFullyRateView.as_view()),
     # path('myrate/',UserRateView.as_view()),path("travels/rating",TravelRateView.as_view()),
 ]
 
