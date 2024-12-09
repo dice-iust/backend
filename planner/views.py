@@ -5,21 +5,21 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from .models import Expense,Settlement
-from .serializers import ExpenseSerializer,SettlementSerializer
+from .models import Expense, Settlement
+from .serializers import ExpenseSerializer, SettlementSerializer, AllPaymentsSerializer
 from Travels.models import TravellersGroup, Travel
 
 User = get_user_model()
 
+
 class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
 
-    def post(self, request, travel_name):
-
+    def post(self, request):
+        travel_name = request.data.get("travel_name")
         user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
-
         try:
             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
@@ -27,18 +27,29 @@ class CreateExpenseAPIView(APIView):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-        uuser = User.objects.filter(user_id=payload["user_id"]).first()
+        user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         try:
-            travel_pay=Travel.objects.filter(name=travel_name)
+            travel_pay = Travel.objects.get(name=travel_name)
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
-            return Response({"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        except TravellersGroup.DoesNotExist:
+            return Response(
+                {"message": "Travellers Group not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         if user not in travel_group.users.all():
-            return Response({"message": "You are not a participant in this travel."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"message": "You are not a participant in this travel."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -65,30 +76,40 @@ class DebtsAPIView(APIView):
         if not user:
             raise AuthenticationFailed("User not found.")
         try:
-            travel_name=request.data.get('travel_name')
+            travel_name = request.data.get("travel_name")
             travel_group = TravellersGroup.objects.get(travel_is__name=travel_name)
         except TravellersGroup.DoesNotExist:
-            return Response({"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if user not in travel_group.users.all():
-            return Response({"message": "You are not a participant in this travel."}, status=status.HTTP_403_FORBIDDEN)
-        travel_name=request.data.get('travel_name')
+            return Response(
+                {"message": "You are not a participant in this travel."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        travel_name = request.data.get("travel_name")
         expenses = Expense.objects.filter(travel=travel_group)
         total_expenses = sum(expense.amount for expense in expenses)
         participants = set(travel_group.users.all())
-        my_total_pay = sum(expense.amount for expense in expenses if expense.created_by==user)
+        my_total_pay = sum(
+            expense.amount for expense in expenses if expense.created_by == user
+        )
         if not participants:
-            return Response({"message": "No participants found."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "No participants found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         share_per_user = total_expenses / len(participants)
-        share_per_to_me = my_total_pay/len(participants)
+        share_per_to_me = my_total_pay / len(participants)
 
         user_debts = {}
         for users in participants:
             settlements = Settlement.objects.filter(
                 travel=travel_group, receiver=user, payer=users
             )
-            if users==user:
+            if users == user:
                 #     user_debts[users.user_name] = {
                 #         "total_share": share_per_to_me,
                 #         "amount_paid": share_per_to_me,
@@ -96,7 +117,9 @@ class DebtsAPIView(APIView):
                 #     }
                 continue
             if settlements.exists():  # Ensure there are settlements before processing
-                total_paid_by_participant = sum(settlement.amount for settlement in settlements)
+                total_paid_by_participant = sum(
+                    settlement.amount for settlement in settlements
+                )
                 user_paid = total_paid_by_participant
                 debt = share_per_to_me - total_paid_by_participant
                 user_debts[users.user_name] = {
@@ -111,9 +134,9 @@ class DebtsAPIView(APIView):
                     "remaining_debt": share_per_to_me,
                 }
 
-        user_should_pay={}
+        user_should_pay = {}
         for part in participants:
-            if part==user:
+            if part == user:
                 #     user_should_pay[part.user_name] = {
                 #         "total_share": others_expenses,
                 #         "amount_paid": others_expenses,
@@ -121,15 +144,17 @@ class DebtsAPIView(APIView):
                 #     }
                 continue
             others_expenses = my_total_pay = sum(
-            expense.amount for expense in expenses if expense.created_by == part
-                )/len(participants)
+                expense.amount for expense in expenses if expense.created_by == part
+            ) / len(participants)
             if not others_expenses:
                 continue
             settlements = Settlement.objects.filter(
                 travel=travel_group, receiver=part, payer=user
             )
             if settlements.exists():  # Ensure there are settlements before processing
-                total_paid_by_participant = sum(settlement.amount for settlement in settlements)
+                total_paid_by_participant = sum(
+                    settlement.amount for settlement in settlements
+                )
                 user_paid = total_paid_by_participant
                 debt = others_expenses - total_paid_by_participant
                 user_should_pay[part.user_name] = {
@@ -145,7 +170,7 @@ class DebtsAPIView(APIView):
         reconciled_debts = {}
 
         for key in user_debts.keys():
-            if key==user:
+            if key == user:
                 continue
             if key not in user_should_pay:
                 reconciled_debts[key] = user_debts[key]
@@ -165,13 +190,10 @@ class DebtsAPIView(APIView):
                     reconciled_debts[key]["amount_paid"] += amount_to_pay
                     user_should_pay[key]["remaining_debt"] = 0
                     user_should_pay[key]["amount_paid"] = amount_to_pay
-        context={
-            "expenses_all": total_expenses,
-            "travel_name":travel_name
-        }
+        context = {"expenses_all": total_expenses, "travel_name": travel_name}
         return Response(
             {
-                "context":context,
+                "context": context,
                 "debts": user_debts,
                 "my_debts": user_should_pay,
                 "total": reconciled_debts,
@@ -198,12 +220,59 @@ class SettleDebtAPIView(APIView):
 
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             settlement = serializer.save()
             settlement.is_paid = True
             settlement.save()
-            return Response({"message": "The debt has been settled successfully."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "The debt has been settled successfully."},
+                status=status.HTTP_200_OK,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AllPayView(APIView):
+    def get(self, request, *args, **kwargs):
+        travel_name = request.data.get("travel_name")
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user = User.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            travel_pay = Travel.objects.get(name=travel_name)
+            travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
+        except TravellersGroup.DoesNotExist:
+            return Response(
+                {"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        except TravellersGroup.DoesNotExist:
+            return Response(
+                {"message": "Travellers Group not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if user not in travel_group.users.all():
+            return Response(
+                {"message": "You are not a participant in this travel."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        travel_name = request.data.get("travel_name")
+        expenses = Expense.objects.filter(travel=travel_group)
+        serializer = AllPaymentsSerializer(expenses, many=True)
+        return Response({"pays": serializer.data}, status=status.HTTP_200_OK)

@@ -1,14 +1,24 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Travel,EmailAddress,TravellersGroup,TravelUserRateMoney,TravelUserRateSleep
+from .models import (
+    Travel,
+    EmailAddress,
+    TravellersGroup,
+    TravelUserRateMoney,
+    TravelUserRateSleep,
+)
+
 # from editprofile.models import UserProfile
 
 Users = get_user_model()
+
+
 class UserSerializer(serializers.ModelSerializer):
     phrofile_image = serializers.SerializerMethodField("get_image")
+
     class Meta:
         model = Users
-        fields = ["user_name", "firstName", "phrofile_image","birthDate"]
+        fields = ["user_name", "firstName", "phrofile_image", "birthDate"]
 
     def get_image(self, obj):
         if obj.profilePicture and hasattr(obj.profilePicture, "url"):
@@ -16,7 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
         return None
 
 
-class PhotoSerializer(serializers.ModelSerializer):  
+class PhotoSerializer(serializers.ModelSerializer):
     phrofile_image = serializers.SerializerMethodField("get_image")
 
     class Meta:
@@ -26,10 +36,11 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         if obj.profilePicture and hasattr(obj.profilePicture, "url"):
             return self.context["request"].build_absolute_uri(obj.profilePicture.url)
-        return None  
+        return None
+
 
 class EmailSerializer(serializers.ModelSerializer):
-  
+
     class Meta:
         model = EmailAddress
         fields = ("email_all",)
@@ -38,6 +49,7 @@ class EmailSerializer(serializers.ModelSerializer):
 class TravelSerializer(serializers.ModelSerializer):
     admin = PhotoSerializer(context={"request": serializers.CurrentUserDefault()})
     image_url = serializers.SerializerMethodField("get_image")
+
     class Meta:
         model = Travel
         fields = [
@@ -50,7 +62,8 @@ class TravelSerializer(serializers.ModelSerializer):
             "destination",
             "transportation",
             "start_place",
-            "mode","rate"
+            "mode",
+            "rate",
         ]
 
     def get_image(self, obj):
@@ -103,6 +116,7 @@ class TravelGroupSerializer(serializers.ModelSerializer):
 class TravelGroupSerializer(serializers.ModelSerializer):
     users = UserSerializer(many=True)
     travel_is = TravelSerializer()
+
     class Meta:
         model = TravellersGroup
         fields = ["travel_is", "users"]
@@ -116,11 +130,12 @@ class TravelPostGroupSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Travel with the specified name does not exist."
             )
-        return value  
+        return value
 
 
 class TravelPostSerializer(serializers.ModelSerializer):
-    photo=serializers.ImageField(required=False)
+    photo = serializers.ImageField(required=False)
+
     class Meta:
         model = Travel
         fields = [
@@ -133,17 +148,19 @@ class TravelPostSerializer(serializers.ModelSerializer):
             "destination",
             "description",
             "transportation",
-            "mode","status"
+            "mode",
+            "status",
         ]
 
 
 class UserRateSerializer(serializers.Serializer):
-    user_name=serializers.CharField(max_length=255)
-    rate=serializers.IntegerField()
+    user_name = serializers.CharField(max_length=255)
+    rate = serializers.IntegerField()
+
 
 class TravelRateSerializer(serializers.Serializer):
     travel_name = serializers.CharField(max_length=255)
-    rate=serializers.IntegerField()
+    rate = serializers.IntegerField()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -154,11 +171,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 class TravelUserRateMoneySerializer(serializers.ModelSerializer):
     travel = TravelSerializer()
-    user_rated=UserSerializer()
-    rated_by=UserSerializer()
+    user_rated = UserSerializer()
+    rated_by = UserSerializer()
+
     class Meta:
         model = TravelUserRateMoney
-        fields = ["travel","user_rated","rated_by","rate"]
+        fields = ["travel", "user_rated", "rated_by", "rate"]
 
 
 class TravelUserRateSleepSerializer(serializers.ModelSerializer):
