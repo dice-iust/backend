@@ -38,12 +38,32 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework","corsheaders",
+    "rest_framework",
+    "corsheaders",
     "signup",
-    'django_filters',
-    'Landing','Travels','editprofile',
-    'planner','profilepage'
+    "django_filters",
+    "Landing",
+    "Travels",
+    "editprofile",
+    "planner",
+    "profilepage",
+    "chat",
+    "channels",
+    "channels_redis",
 ]
+ASGI_APPLICATION = "BackEnd_TravelPlanning.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                ("nearby-heron-25277.upstash.io", 6379),  #
+            ],
+            "PASSWORD": "AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA",
+            "SSL": True,
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
