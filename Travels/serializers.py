@@ -18,7 +18,17 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Users
-        fields = ["user_name", "firstName", "phrofile_image", "birthDate"]
+        fields = [
+            "user_name",
+            "firstName",
+            "phrofile_image",
+            "birthDate",
+            "email",
+            "city",
+            "gender",
+            "bio",
+            "lastName",
+        ]
 
     def get_image(self, obj):
         if obj.profilePicture and hasattr(obj.profilePicture, "url"):
@@ -64,6 +74,8 @@ class TravelSerializer(serializers.ModelSerializer):
             "start_place",
             "mode",
             "rate",
+            "status",
+            "empty_travellers", #they are in trip
         ]
 
     def get_image(self, obj):
