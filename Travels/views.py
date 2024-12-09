@@ -48,7 +48,7 @@ class AllTravels(generics.ListAPIView):
     #     # "start_place",
     #     "start_date","end_date"
     # ]
-    filterset_fields = ("start_date", "end_date")
+    filterset_fields = ("start_date", "end_date", "start_place", "transportation")
 
 
 class TravelViewSpring(ListAPIView):
@@ -283,9 +283,27 @@ class SingleTravelView(APIView):
     serializer_class = TravelGroupSerializer
     permission_classes = [AllowAny]
 
-    def get(self, request, pk):
+    def get(self, request):
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
         try:
-            travel_get = Travel.objects.get(pk=pk)
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            travel_name=request.data.get('travel_name')
+            travel_get = Travel.objects.get(name=travel_name)
         except Travel.DoesNotExist:
             return Response(
                 {"detail": "This travel does not exist."},
@@ -297,7 +315,17 @@ class SingleTravelView(APIView):
         travel_serializer = TravelGroupSerializer(
             tg, context={"request": request}
         )
-        return Response(data=travel_serializer.data, status=status.HTTP_200_OK)
+        if user in tg.users.all():
+            return Response({"travels":travel_serializer.data,
+            "is_part":True}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"travels": travel_serializer.data, "is_part": False},
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            {"error": "error", "is_part": False}, status=status.HTTP_404_NOT_FOUND
+        )
 
 
 class TravelGroupView(APIView):
@@ -322,10 +350,6 @@ class TravelGroupView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        # travel_admin=Travel.objects.filter(admin=user)
-        # user_groups = TravellersGroup.objects.filter(
-        # Q(users=user) | Q(travel_is__in=travel_admin)
-        # )
         serializer_past = None
         serializer_current = None
         serializer_future = None
