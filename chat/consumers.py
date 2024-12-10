@@ -1,10 +1,12 @@
 import json
 import jwt
 from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
 from django.conf import settings
-from Travels.models import TravellersGroup, Travel
-from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth import get_user_model
+from channels.db import database_sync_to_async
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from django.conf import settings
+
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -12,17 +14,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
         self.room_group_name = f"travel_{self.travel_name}"
 
-        user_token = self.scope.get("headers", {}).get("authorization", b"").decode()
-        if not user_token:
+        # Extract Authorization token from headers
+        headers = dict(self.scope.get("headers", []))
+        auth_header = headers.get(b"authorization", None)
+        if not auth_header:
             await self.close()
             return
-        user = await self.get_user_from_token(user_token)
-        if not user or not await self.is_user_in_travel_group(self.travel_name, user):
-            await self.close()
-            return
-        self.user = user  
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
+        token = auth_header.decode("utf-8").split(" ")[-1]  # Extract token
+        user = await self.get_user_from_token(token)
+
+        if not user:
+            await self.close()
+            return
+
+        # Validate travel and user group membership
+        travel, travellers_group = await self.get_travel_and_group(
+            self.travel_name, user
+        )
+        if not travel or not travellers_group:
+            await self.close()
+            return
+
+        self.user = user
+        self.travellers_group = travellers_group
+
+        # Join WebSocket group
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -32,12 +50,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
+        # Save message to the database
+        await self.save_message(message)
+
+        # Broadcast the message to the group
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_message",
                 "message": message,
-                "user_name": self.user.user_name, 
+                "user_name": self.user.user_name,
             },
         )
 
@@ -45,30 +67,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         user_name = event["user_name"]
 
+        # Send message to WebSocket
         await self.send(
             text_data=json.dumps({"message": message, "user_name": user_name})
         )
 
     @database_sync_to_async
+    def save_message(self, message):
+        # Avoid top-level imports to prevent app loading issues
+        from Travels.models import ChatMessage
+
+        ChatMessage.objects.create(
+            sender=self.user,
+            travellers_group=self.travellers_group,
+            message=message,
+            travel_name=self.travel_name,
+        )
+
+    @database_sync_to_async
     def get_user_from_token(self, token):
-        """
-        Get the user from the provided JWT token.
-        """
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             user_id = payload.get("user_id")
-            user = User.objects.filter(user_id=user_id).first()
-            return user
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed("Token has expired.")
-        except jwt.InvalidTokenError:
-            raise AuthenticationFailed("Invalid token.")
+            return settings.AUTH_USER_MODEL.objects.filter(user_id=user_id).first()
+        except ExpiredSignatureError:
+            return None  # Token has expired
+        except InvalidTokenError:
+            return None  # Invalid token
 
     @database_sync_to_async
-    def is_user_in_travel_group(self, travel_name, user):
+    def get_travel_and_group(self, travel_name, user):
+        from Travels.models import Travel, TravellersGroup
+
         try:
-            travel = Travel.objects.get(id=travel_name)
-            travel_group = TravellersGroup.objects.get(travel_is=travel)
-            return user in travel_group.users.all()
-        except Travel.DoesNotExist or TravellersGroup.DoesNotExist:
-            return False
+            travel = Travel.objects.get(name=travel_name)
+            travellers_group = TravellersGroup.objects.get(travel_is=travel)
+            if user in travellers_group.users.all():
+                return travel, travellers_group
+            return None, None
+        except (Travel.DoesNotExist, TravellersGroup.DoesNotExist):
+            return None, None
