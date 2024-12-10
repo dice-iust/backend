@@ -107,3 +107,14 @@ class TravelUserRateSleep(models.Model):
         return (
             f"{self.rated_by} rated {self.user_rated} as {self.rate} in {self.travel}"
         )
+class Requests(models.Model):
+    user_request = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="request_user",
+    )
+    travel = models.ForeignKey(
+        Travel, on_delete=models.CASCADE, related_name="travel_request"
+    )
+    travel_name = models.CharField(max_length=200,blank=True, null=True)
+    created_at = models.DateField(auto_now_add=True)
