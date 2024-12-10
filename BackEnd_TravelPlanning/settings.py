@@ -178,3 +178,13 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_NAME = 'sessionid'  # Default
 SESSION_COOKIE_AGE = 3600  # 1 hour in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # False if you want the session to persist across browser sessions
+import redis
+
+r = redis.Redis(
+  host='nearby-heron-25277.upstash.io',
+  port=6379,
+  password="AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA",
+  ssl=True
+)
+
+r.set('foo', 'bar')
