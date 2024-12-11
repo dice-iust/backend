@@ -35,7 +35,7 @@ class Travel(models.Model):
     rated_by_user = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="rated_by_user_travel", blank=True
     )
-
+    key=models.IntegerField(blank=True, null=True,default=0000)
     def __str__(self):
         return self.destination
 
