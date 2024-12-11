@@ -14,21 +14,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
         self.room_group_name = f"travel_{self.travel_name}"
 
-        # Extract Authorization token from headers
         headers = dict(self.scope.get("headers", []))
-        auth_header = headers.get(b"authorization", None)
+        auth_header = headers.get(b"Authorization", None)
         if not auth_header:
             await self.close()
             return
 
-        token = auth_header.decode("utf-8").split(" ")[-1]  # Extract token
+        token = auth_header.decode("utf-8").split(" ")[-1] 
         user = await self.get_user_from_token(token)
 
         if not user:
             await self.close()
             return
 
-        # Validate travel and user group membership
+
         travel, travellers_group = await self.get_travel_and_group(
             self.travel_name, user
         )
@@ -39,7 +38,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = user
         self.travellers_group = travellers_group
 
-        # Join WebSocket group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
@@ -50,10 +48,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
-        # Save message to the database
         await self.save_message(message)
 
-        # Broadcast the message to the group
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -67,14 +64,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         user_name = event["user_name"]
 
-        # Send message to WebSocket
+    
         await self.send(
             text_data=json.dumps({"message": message, "user_name": user_name})
         )
 
     @database_sync_to_async
     def save_message(self, message):
-        # Avoid top-level imports to prevent app loading issues
+
         from Travels.models import ChatMessage
 
         ChatMessage.objects.create(
@@ -91,9 +88,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             user_id = payload.get("user_id")
             return settings.AUTH_USER_MODEL.objects.filter(user_id=user_id).first()
         except ExpiredSignatureError:
-            return None  # Token has expired
+            return None 
         except InvalidTokenError:
-            return None  # Invalid token
+            return None 
 
     @database_sync_to_async
     def get_travel_and_group(self, travel_name, user):
