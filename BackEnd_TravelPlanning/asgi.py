@@ -4,6 +4,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from chat.routing import websocket_urlpatterns
 import django
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "BackEnd_TravelPlanning.settings")
 django.setup()
 application = ProtocolTypeRouter(

@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
-    "django.contrib.messages",
+    "django.contrib.messages",'daphne',
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
@@ -49,29 +49,34 @@ INSTALLED_APPS = [
     "profilepage",
     "chat",
     "channels",
-    "channels_redis",
+   
 ]
 ASGI_APPLICATION = "BackEnd_TravelPlanning.asgi.application"
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-        "CONFIG": {
-            "hosts": [
-                {
-                    "address": "redis://nearby-heron-25277.upstash.io:6379",
-                    "password": "AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA",
-                    "ssl": True,  # TLS/SSL enabled
-                }
-            ],
-        },
-    },
-}
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels.layers.InMemoryChannelLayer",
-#     },
-# }
+CHANNEL_LAYERS = {
+
+    "default": {
+
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+
+        "CONFIG": {
+
+            "hosts": [
+
+                {
+
+                    "address": "redis://:AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA@nearby-heron-25277.upstash.io:6379/0",
+
+
+                },
+
+            ],
+
+        },
+
+    },
+
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -186,13 +191,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_NAME = 'sessionid'  # Default
 SESSION_COOKIE_AGE = 3600  # 1 hour in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # False if you want the session to persist across browser sessions
-import redis
-
-r = redis.Redis(
-  host='nearby-heron-25277.upstash.io',
-  port=6379,
-  password="AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA",
-  ssl=True
-)
-
-r.set('foo', 'bar')
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
