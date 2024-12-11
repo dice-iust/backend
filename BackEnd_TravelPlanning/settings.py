@@ -54,16 +54,24 @@ INSTALLED_APPS = [
 ASGI_APPLICATION = "BackEnd_TravelPlanning.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
         "CONFIG": {
             "hosts": [
-                ("nearby-heron-25277.upstash.io", 6379),  #
+                {
+                    "address": "redis://nearby-heron-25277.upstash.io:6379",
+                    "password": "AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA",
+                    "ssl": True,  # TLS/SSL enabled
+                }
             ],
-            "PASSWORD": "AWK9AAIjcDE4NDE2ZWE5YTQ2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA",
-            "SSL": True,
         },
     },
 }
+
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -5,7 +5,7 @@ from .models import (
     EmailAddress,
     TravellersGroup,
     TravelUserRateMoney,
-    TravelUserRateSleep,
+    TravelUserRateSleep,Requests
 )
 
 # from editprofile.models import UserProfile
