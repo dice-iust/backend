@@ -16,16 +16,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
             self.room_group_name = f"travel_{self.travel_name}"
 
-            # Authentication
-            # Extracting token from headers 
-            headers = dict(self.scope.get("headers", [])) 
-            auth_header = headers.get(b"authorization") 
-            if not auth_header: 
-                logger.warning("Missing Authorization header.") 
-                await self.close(code=4003) 
+            headers = dict(self.scope.get("headers", []))
+            auth_header = headers.get(b"authorization")
+            if not auth_header:
+                logger.warning("Missing Authorization header.")
+                await self.close(code=4003)
                 return
 
-            user = await self.get_user_from_token(auth_header)
+            token = auth_header.decode("utf-8").split(" ")[-1]
+            user = await self.get_user_from_token(token)
+
             if not user:
                 logger.warning("Invalid or expired token.")
                 await self.close(code=4001)
@@ -50,11 +50,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         try:
-            await self.channel_layer.group_discard(
-                self.room_group_name, self.channel_name
-            )
+            if self.channel_layer:
+                await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+            else:
+                logger.warning("Channel layer is not available during disconnect.")
         except Exception as e:
             logger.error(f"Error in disconnect: {e}")
+
 
     async def receive(self, text_data):
         try:
@@ -72,7 +74,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "chat_message",
                     "message": message,
-                    "user_name": self.user.username,
                 },
             )
         except json.JSONDecodeError:
@@ -83,17 +84,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         try:
             message = event["message"]
-            user_name = event["user_name"]
 
             await self.send(
-                text_data=json.dumps({"message": message, "user_name": user_name})
+                text_data=json.dumps({"message": message, "user_name": self.user.user_name})
             )
         except Exception as e:
             logger.error(f"Error in chat_message: {e}")
 
     @database_sync_to_async
     def save_message(self, message):
-        from Travels.models import ChatMessage
+        from .models import ChatMessage
 
         if not self.user or not self.travellers_group:
             logger.warning("User or travellers group is not set.")
@@ -131,10 +131,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         try:
             travel = Travel.objects.get(name=travel_name)
-            travellers_group = TravellersGroup.objects.get(travel_is=travel)
+            travellers_group = TravellersGroup.objects.prefetch_related("users").get(
+                travel_is=travel
+            )
             if user in travellers_group.users.all():
                 return travel, travellers_group
-            logger.warning(f"User {user.user_id} is not in group for travel {travel_name}.")
+            logger.warning(f"User {user.id} is not in group for travel {travel_name}.")
             return None, None
         except Travel.DoesNotExist:
             logger.warning(f"Travel {travel_name} does not exist.")

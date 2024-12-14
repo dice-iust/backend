@@ -44,6 +44,7 @@ import jwt
 from django.utils.timezone import now
 from django.db.models import Sum
 from django.core.mail import send_mail
+import random
 
 class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
@@ -313,7 +314,7 @@ class SingleTravelView(APIView):
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
         try:
-            travel_name=request.data.get('travel_name')
+            travel_name=request.query_params.get('travel_name')
             travel_get = Travel.objects.get(name=travel_name)
         except Travel.DoesNotExist:
             return Response(

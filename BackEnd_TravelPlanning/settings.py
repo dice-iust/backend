@@ -33,25 +33,30 @@ INSTALLED_APPS = [
 
 ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
 
-REDIS_URL = "rediss://AWK9AAIjcDE4NDE2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA@nearby-heron-25277.upstash.io:6379/0"
+# REDIS_URL = "rediss://AWK9AAIjcDE4NDE2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA@nearby-heron-25277.upstash.io:6379/0"
 
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [REDIS_URL],
+#         },
+#     },
+# }
+
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": REDIS_URL,
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         },
+#     }
+# }
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [REDIS_URL],
-        },
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
-}
-
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
-    }
 }
 
 MIDDLEWARE = [
