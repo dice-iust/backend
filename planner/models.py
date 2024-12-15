@@ -41,7 +41,7 @@ class Expense(models.Model):
     created_at = models.DateField(auto_now_add=True)
     title = models.CharField(max_length=100, default="payment", null=True)
     description = models.TextField(null=True)
-    receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True)
+    receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True,default="/pay.jpg")
 
     @property
     def category_icon(self):

@@ -426,7 +426,6 @@ class PostTravelView(APIView):
     serializer_class = TravelPostSerializer
     authenticated_classes = [TokenAuthentication]
     def post(self, request):
-        # user_token = request.COOKIES.get("access_token")
         user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
