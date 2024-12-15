@@ -17,13 +17,11 @@ class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
 
     def post(self, request):
-        # Retrieve travel name and user token from request
         travel_name = request.data.get("travel_name")
         user_token = request.headers.get("Authorization")
 
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
-
         try:
             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
@@ -31,7 +29,6 @@ class CreateExpenseAPIView(APIView):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-        # Retrieve user based on the token
         user = User.objects.filter(user_name=payload["user_name"]).first()
         if not user:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -81,6 +78,78 @@ class CreateExpenseAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# class DebtsAPIView(APIView):
+#     def get(self, request, *args, **kwargs):
+#         user_token = request.headers.get("Authorization")
+#         if not user_token:
+#             raise AuthenticationFailed("Unauthenticated user.")
+#
+#         try:
+#             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+#         except jwt.ExpiredSignatureError:
+#             raise AuthenticationFailed("Token has expired.")
+#         except jwt.InvalidTokenError:
+#             raise AuthenticationFailed("Invalid token.")
+#
+#         user = User.objects.filter(user_name=payload["user_name"]).first()
+#         if not user:
+#             raise AuthenticationFailed("User not found.")
+#
+#         try:
+#             travel_name = request.data.get("travel_name")
+#             travel_group = TravellersGroup.objects.get(travel_is__name=travel_name)
+#         except TravellersGroup.DoesNotExist:
+#             return Response({"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
+#
+#         if user not in travel_group.users.all():
+#             return Response({"message": "You are not a participant in this travel."}, status=status.HTTP_403_FORBIDDEN)
+#
+#         expenses = Expense.objects.filter(travel=travel_group)
+#         total_expenses = sum(expense.amount for expense in expenses)
+#         participants = set(travel_group.users.all())
+#         my_total_pay = sum(expense.amount for expense in expenses if expense.created_by == user)
+#
+#         if not participants:
+#             return Response({"message": "No participants found."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         share_per_user = total_expenses / len(participants)
+#         share_per_to_me = my_total_pay / len(participants)
+#
+#         user_debts = {}
+#         for users in participants:
+#             settlements = Settlement.objects.filter(travel=travel_group, receiver=user, payer=users)
+#             if users == user:
+#                 continue
+#             if settlements.exists():
+#                 total_paid_by_participant = sum(settlement.amount for settlement in settlements)
+#                 user_paid = total_paid_by_participant
+#                 debt = share_per_to_me - total_paid_by_participant
+#                 user_debts[users.user_name] = {
+#                     "total_share": share_per_to_me,
+#                     "amount_paid": user_paid,
+#                     "remaining_debt": debt,
+#                 }
+#             else:
+#                 user_debts[users.user_name] = {
+#                     "total_share": share_per_to_me,
+#                     "amount_paid": 0,
+#                     "remaining_debt": share_per_to_me,
+#                 }
+#
+#         # Similar logic for user_should_pay
+#         # Reconcile debts and prepare the response
+#         reconciled_debts = {}
+#         for key in user_debts.keys():
+#             if key == user:
+#                 continue
+#             reconciled_debts[key] = user_debts[key]
+#
+#         context = {"expenses_all": total_expenses, "travel_name": travel_name}
+#         return Response(
+#             {"context": context, "debts": user_debts, "total": reconciled_debts},
+#             status=status.HTTP_200_OK,
+#         )
+#
 class DebtsAPIView(APIView):
     def get(self, request, *args, **kwargs):
         user_token = request.headers.get("Authorization")
@@ -119,40 +188,29 @@ class DebtsAPIView(APIView):
         share_per_to_me = my_total_pay / len(participants)
 
         user_debts = {}
-        for users in participants:
-            settlements = Settlement.objects.filter(travel=travel_group, receiver=user, payer=users)
-            if users == user:
-                continue
-            if settlements.exists():
-                total_paid_by_participant = sum(settlement.amount for settlement in settlements)
-                user_paid = total_paid_by_participant
-                debt = share_per_to_me - total_paid_by_participant
-                user_debts[users.user_name] = {
-                    "total_share": share_per_to_me,
-                    "amount_paid": user_paid,
-                    "remaining_debt": debt,
-                }
-            else:
-                user_debts[users.user_name] = {
-                    "total_share": share_per_to_me,
-                    "amount_paid": 0,
-                    "remaining_debt": share_per_to_me,
-                }
+        for participant in participants:
+            total_paid_by_participant = sum(
+                settlement.amount for settlement in Settlement.objects.filter(travel=travel_group, payer=participant)
+            )
+            debt = share_per_user - total_paid_by_participant
+            is_owing_money = debt > 0
+            remaining_debt = abs(debt)  # Positive if owing money, negative if owed money
+            debtor_to = None if not is_owing_money else [user.user_name for user in participants if settlement.receiver == user]
+            creditor_to = None if is_owing_money else [user.user_name for user in participants if settlement.payer == user]
 
-        # Similar logic for user_should_pay
-        # Reconcile debts and prepare the response
-        reconciled_debts = {}
-        for key in user_debts.keys():
-            if key == user:
-                continue
-            reconciled_debts[key] = user_debts[key]
+            user_debts[participant.user_name] = {
+                "total_share": share_per_user,
+                "amount_paid": total_paid_by_participant,
+                "remaining_debt": remaining_debt,
+                "debtor_to": debtor_to,
+                "creditor_to": creditor_to
+            }
 
         context = {"expenses_all": total_expenses, "travel_name": travel_name}
         return Response(
-            {"context": context, "debts": user_debts, "total": reconciled_debts},
+            {"context": context, "debts": user_debts},
             status=status.HTTP_200_OK,
         )
-
 
 class SettleDebtAPIView(APIView):
     serializer_class = SettlementSerializer
