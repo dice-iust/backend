@@ -327,17 +327,22 @@ class SingleTravelView(APIView):
         travel_serializer = TravelGroupSerializer(
             tg, context={"request": request}
         )
+        profile_url = request.build_absolute_uri(user.profilePicture.url) if user.profilePicture else None
+        if (user == travel_get.admin):
+            return Response({"travels":travel_serializer.data,"code":travel_get.key,
+                "is_part":True,
+                "profile":profile_url,"name":user.user_name}, status=status.HTTP_200_OK)
         if user in tg.users.all():
-            if (user == travel_get.admin):
-                return Response({"travels":travel_serializer.data,"code":travel_get.key,
-                "is_part":True}, status=status.HTTP_200_OK)
             return Response({"travels":travel_serializer.data,
-            "is_part":True}, status=status.HTTP_200_OK)
+                "profile":profile_url,"name":user.user_name,
+                "is_part":True}, status=status.HTTP_200_OK)
         else:
             if travel_get.status=='Private':
-                return Response({"error":"Your Not Part of Travel","is_part":False},status=status.HTTP_403_FORBIDDEN)
+                return Response({"error":"Your Not Part of Travel","is_part":False,
+                "profile":profile_url,"name":user.user_name},status=status.HTTP_403_FORBIDDEN)
             return Response(
-                {"travels": travel_serializer.data, "is_part": False},
+                {"travels": travel_serializer.data, "is_part": False,
+                "profile":profile_url,"name":user.user_name},
                 status=status.HTTP_200_OK,
             )
         return Response(
