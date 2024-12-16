@@ -9,6 +9,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['triptide.pythonanywhere.com', '127.0.0.1','localhost']
 
+ABLY_API_KEY = "QDJHuQ.jtNcRg:JKA0I5LfLPDjjflnpaXjsX74nRAGAfb-KV8vsJ1ZJtw"
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "daphne",
@@ -53,11 +55,11 @@ ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
 #         },
 #     }
 # }
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
