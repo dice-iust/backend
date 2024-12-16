@@ -6,7 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from .models import Expense, Settlement
-from .serializers import ExpenseSerializer,GetExpenseSerializer
+from .serializers import ExpenseSerializer, GetExpenseSerializer
 from Travels.models import TravellersGroup, Travel
 from django.core.files.storage import default_storage
 
@@ -17,7 +17,6 @@ class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
 
     def get(self, request):
-
         context = {
             "accommodation": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/accommodation.jpg",
             "Entertainment": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Entertainment.jpg",
@@ -36,6 +35,7 @@ class CreateExpenseAPIView(APIView):
 
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
+
         try:
             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
@@ -51,6 +51,7 @@ class CreateExpenseAPIView(APIView):
             )
 
         try:
+
             travel_pay = Travel.objects.filter(name=travel_name).first()
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
@@ -70,7 +71,9 @@ class CreateExpenseAPIView(APIView):
 
         participants_in_travel = travel_group.users.all()
         if travel_pay.admin not in participants_in_travel:
-            participants_in_travel = participants_in_travel | {travel_pay.admin}
+            participants_in_travel = participants_in_travel | User.objects.filter(
+                user_id=travel_pay.admin.user_id
+            )
 
         valid_participants = [
             {"user_name": participant.user_name}
