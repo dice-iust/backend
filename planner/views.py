@@ -51,7 +51,7 @@ class CreateExpenseAPIView(APIView):
             )
 
         try:
-
+            # Fetch travel and group details
             travel_pay = Travel.objects.filter(name=travel_name).first()
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
@@ -60,6 +60,7 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        # Check if user is a participant or admin of the travel
         if user not in travel_group.users.all() and user != travel_pay.admin:
             return Response(
                 {
@@ -69,14 +70,16 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Get all participants in the travel group
         participants_in_travel = travel_group.users.all()
         if travel_pay.admin not in participants_in_travel:
             participants_in_travel = participants_in_travel | User.objects.filter(
                 user_id=travel_pay.admin.user_id
             )
 
+        # Prepare a list of valid participants with their user_name
         valid_participants = [
-            {"user_name": participant.user_name}
+            {"user_name": participant.user_name}  # Use the correct field name
             for participant in participants_in_travel
         ]
 
@@ -87,7 +90,7 @@ class CreateExpenseAPIView(APIView):
 
     def post(self, request):
         context = {
-            "accommodation":f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/accommodation.jpg",
+            "accommodation": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/accommodation.jpg",
             "Entertainment": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Entertainment.jpg",
             "Groceries": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Groceries.jpg",
             "Healthcare": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Healthcare.jpg",
@@ -113,7 +116,8 @@ class CreateExpenseAPIView(APIView):
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             return Response(
-                {"detail": "User not found.","context":context}, status=status.HTTP_404_NOT_FOUND
+                {"detail": "User not found.", "context": context},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         try:
@@ -121,17 +125,23 @@ class CreateExpenseAPIView(APIView):
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
             return Response(
-                {"message": "Travel not found.","context":context}, status=status.HTTP_404_NOT_FOUND
+                {"message": "Travel not found.", "context": context},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        if user not in travel_group.users.all() and user!=travel_pay.admin:
+        if user not in travel_group.users.all() and user != travel_pay.admin:
             return Response(
-                {"message": "You are not a participant in this travel.","context":context},
+                {
+                    "message": "You are not a participant in this travel.",
+                    "context": context,
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
-        participants_in_travel = travel_group.users.all() 
+        participants_in_travel = travel_group.users.all()
         if travel_pay.admin not in participants_in_travel:
-            participants_in_travel = participants_in_travel | {travel_pay.admin} 
+            participants_in_travel = participants_in_travel | User.objects.filter(
+                user_id=travel_pay.admin.user_id
+            )
         participant_usernames = request.data.get("participants", [])
         participants = []
         for username in set(participant_usernames):
@@ -140,13 +150,13 @@ class CreateExpenseAPIView(APIView):
                 participants.append(participant)
             else:
                 return Response(
-                    {"message": f"User {username} does not exist.","context":context},
+                    {"message": f"User {username} does not exist.", "context": context},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
         serializer = self.serializer_class(
             data=request.data, context={"request": request}
-        )  
+        )
         if serializer.is_valid():
             if request.data.get("receipt_image"):
                 expense = serializer.save(travel=travel_group)
@@ -167,10 +177,22 @@ class CreateExpenseAPIView(APIView):
             expense = serializer.save(travel=travel_group)
             expense.participants.set(participants)
             expense.save()
-            return Response({"data":serializer.data,
-                            "context": context,"valid_participants": [{"user_name": participant.user_name} for participant in participants_in_travel],} ,status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "data": serializer.data,
+                    "context": context,
+                    "valid_participants": [
+                        {"user_name": participant.user_name}
+                        for participant in participants_in_travel
+                    ],
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
-        return Response({"error":serializer.errors,"context":context}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": serializer.errors, "context": context},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 class DebtsAPIView(APIView):
@@ -205,41 +227,55 @@ class DebtsAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        participants_in_travel = travel_group.users.all()
+        if travel.admin not in participants_in_travel:
+            participants_in_travel = participants_in_travel | User.objects.filter(
+                user_id=travel.admin.user_id
+            )
+
+        # Initialize debts to track what the user owes and what others owe to the user
         debts = {
             participant.user_name: {
-                participant.user_name: 0 for participant in travel_group.users.all()
+                "user": 0,  # Track user's debt to others
+                "others": 0,  # Track what others owe to the user
             }
-            for participant in travel_group.users.all()
+            for participant in participants_in_travel
         }
 
         expenses = Expense.objects.filter(travel=travel_group)
-
         for expense in expenses:
             participants = expense.participants.all()
-            total_participants = len(participants) + 1 
+            total_participants = len(participants) + 1  # Including the payer
             share_per_user = (
                 expense.amount / total_participants if total_participants else 0
             )
 
             for participant in participants:
-                if participant == user or expense.payer == user:
-                    if expense.payer == user and participant != user:
-                        debts[participant.user_name][user.user_name] += share_per_user
-                        debts[user.user_name][participant.user_name] -= share_per_user
-                    elif expense.payer != user:
+                if expense.payer == user and participant != user:
+                    # Participant owes the user
+                    debts[participant.user_name]["others"] += share_per_user
+                    debts[user.user_name]["user"] -= share_per_user
+                elif expense.payer != user and participant != user:
+                    # User owes the participant
+                    debts[participant.user_name]["user"] += share_per_user
+                    debts[expense.payer.user_name]["others"] -= share_per_user
 
-                        debts[user.user_name][expense.payer.user_name] += share_per_user
-                        debts[expense.payer.user_name][user.user_name] -= share_per_user
+        # Separate user debts and what others owe to the user
+        user_debts_to_others = {
+            key: value["user"] for key, value in debts.items() if value["user"] > 0
+        }
+        others_debt_to_user = {
+            key: value["others"] for key, value in debts.items() if value["others"] > 0
+        }
 
-        user_debts = debts.get(user.user_name, {})
-
-        user_debts = {key: value for key, value in user_debts.items() if value != 0}
-
-        has_debt = bool(user_debts)
+        has_debt = bool(user_debts_to_others)  # If the user has debt to others
+        has_credit = bool(others_debt_to_user)  # If others owe money to the user
 
         response_data = {
-            "user_debt_info": {user.user_name: user_debts},
+            "user_debts_to_others": user_debts_to_others,  # What user owes to others
+            "others_debt_to_user": others_debt_to_user,  # What others owe to user
             "has_debt": has_debt,
+            "has_credit": has_credit,
             "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}/payment.jpg",
         }
 
@@ -262,16 +298,23 @@ class AllPayView(APIView):
 
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         try:
             travel_pay = Travel.objects.get(name=travel_name)
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
-            return Response({"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
-        if user not in travel_group.users.all() and user!=travel_pay.admin:
-            return Response({"message": "You are not a participant in this travel."}, status=status.HTTP_403_FORBIDDEN)
+        if user not in travel_group.users.all() and user != travel_pay.admin:
+            return Response(
+                {"message": "You are not a participant in this travel."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         expenses = Expense.objects.filter(travel=travel_group)
         serializer = GetExpenseSerializer(
