@@ -16,6 +16,72 @@ User = get_user_model()
 class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
 
+    def get(self, request):
+
+        context = {
+            "accommodation": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/accommodation.jpg",
+            "Entertainment": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Entertainment.jpg",
+            "Groceries": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Groceries.jpg",
+            "Healthcare": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Healthcare.jpg",
+            "Insurance": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Insurance.jpg",
+            "Other": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Other.jpg",
+            "Rent": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Rent.jpg",
+            "Restaurant": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Restaurant.jpg",
+            "Shopping": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Shopping.jpg",
+            "Transport": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/Transport.jpg",
+        }
+
+        travel_name = request.query_params.get("travel_name")
+        user_token = request.headers.get("Authorization")
+
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user = User.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found.", "context": context},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            travel_pay = Travel.objects.filter(name=travel_name).first()
+            travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
+        except TravellersGroup.DoesNotExist:
+            return Response(
+                {"message": "Travel not found.", "context": context},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if user not in travel_group.users.all() and user != travel_pay.admin:
+            return Response(
+                {
+                    "message": "You are not a participant in this travel.",
+                    "context": context,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        participants_in_travel = travel_group.users.all()
+        if travel_pay.admin not in participants_in_travel:
+            participants_in_travel = participants_in_travel | {travel_pay.admin}
+
+        valid_participants = [
+            {"user_name": participant.user_name}
+            for participant in participants_in_travel
+        ]
+
+        return Response(
+            {"context": context, "valid_participants": valid_participants},
+            status=status.HTTP_200_OK,
+        )
+
     def post(self, request):
         context = {
             "accommodation":f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}icons/accommodation.jpg",
