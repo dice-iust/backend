@@ -53,9 +53,7 @@ class GetUserSerializer(serializers.ModelSerializer):
 
 class GetExpenseSerializer(serializers.ModelSerializer):
     category_icon = serializers.SerializerMethodField()
-    participants = serializers.SlugRelatedField(
-        many=True, slug_field="user_name", queryset=Users.objects.all()
-    )
+    participants = GetUserSerializer(many=True)
     payer = GetUserSerializer()
     receipt_image = serializers.ImageField(required=False)
 
