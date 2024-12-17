@@ -3,7 +3,15 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from .models import Travel, EmailAddress, TravellersGroup, UserRate,TravelUserRateMoney,TravelUserRateSleep
+from .models import (
+    Travel,
+    EmailAddress,
+    TravellersGroup,
+    UserRate,
+    TravelUserRateMoney,
+    TravelUserRateSleep,
+    Requests,
+)
 from .serializers import (
     TravelSerializer,
     EmailSerializer,
@@ -15,6 +23,7 @@ from .serializers import (
     TravelUserRateMoneySerializer,
     TravelUserRateSleepSerializer,
     UserMiddleRateSerializer,
+    RequestSerializer,
 )
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -34,6 +43,9 @@ User = get_user_model()
 import jwt
 from django.utils.timezone import now
 from django.db.models import Sum
+from django.core.mail import send_mail
+import random
+
 class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
@@ -48,7 +60,7 @@ class AllTravels(generics.ListAPIView):
     #     # "start_place",
     #     "start_date","end_date"
     # ]
-    filterset_fields = ("start_date", "end_date")
+    filterset_fields = ("start_date", "end_date", "start_place", "transportation")
 
 
 class TravelViewSpring(ListAPIView):
@@ -283,28 +295,7 @@ class SingleTravelView(APIView):
     serializer_class = TravelGroupSerializer
     permission_classes = [AllowAny]
 
-    def get(self, request, pk):
-        try:
-            travel_get = Travel.objects.get(pk=pk)
-        except Travel.DoesNotExist:
-            return Response(
-                {"detail": "This travel does not exist."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        tg=TravellersGroup.objects.filter(travel_is=travel_get).first()
-        if not tg:
-            return Response("this Travel is not exit.")
-        travel_serializer = TravelGroupSerializer(
-            tg, context={"request": request}
-        )
-        return Response(data=travel_serializer.data, status=status.HTTP_200_OK)
-
-
-class TravelGroupView(APIView):
-    serializer_class = TravelGroupSerializer
-
     def get(self, request):
-        # user_token = request.COOKIES.get("access_token")
         user_token = request.headers.get("Authorization")
         if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
@@ -322,10 +313,64 @@ class TravelGroupView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        # travel_admin=Travel.objects.filter(admin=user)
-        # user_groups = TravellersGroup.objects.filter(
-        # Q(users=user) | Q(travel_is__in=travel_admin)
-        # )
+        try:
+            travel_name=request.query_params.get('travel_name')
+            travel_get = Travel.objects.get(name=travel_name)
+        except Travel.DoesNotExist:
+            return Response(
+                {"detail": "This travel does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        tg=TravellersGroup.objects.filter(travel_is=travel_get).first()
+        if not tg:
+            return Response("this Travel is not exit.")
+        travel_serializer = TravelGroupSerializer(
+            tg, context={"request": request}
+        )
+        profile_url = request.build_absolute_uri(user.profilePicture.url) if user.profilePicture else None
+        if (user == travel_get.admin):
+            return Response({"travels":travel_serializer.data,"code":travel_get.key,
+                "is_part":True,
+                "profile":profile_url,"name":user.user_name}, status=status.HTTP_200_OK)
+        if user in tg.users.all():
+            return Response({"travels":travel_serializer.data,
+                "profile":profile_url,"name":user.user_name,
+                "is_part":True}, status=status.HTTP_200_OK)
+        else:
+            if travel_get.status=='Private':
+                return Response({"error":"Your Not Part of Travel","is_part":False,
+                "profile":profile_url,"name":user.user_name},status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"travels": travel_serializer.data, "is_part": False,
+                "profile":profile_url,"name":user.user_name},
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            {"error": "error", "is_part": False}, status=status.HTTP_404_NOT_FOUND
+        )
+
+
+class TravelGroupView(APIView):
+    serializer_class = TravelGroupSerializer
+
+    def get(self, request):
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         serializer_past = None
         serializer_current = None
         serializer_future = None
@@ -369,59 +414,6 @@ class TravelGroupView(APIView):
         )
 
 
-class AddTravelUserView(APIView):
-    serializer_class = TravelPostGroupSerializer
-    authentication_classes = [TokenAuthentication]
-
-    def post(self, request):
-        user_token = request.COOKIES.get("access_token")
-        if not user_token:
-            raise AuthenticationFailed("Unauthenticated user.")
-
-        try:
-            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed("Token has expired.")
-        except jwt.InvalidTokenError:
-            raise AuthenticationFailed("Invalid token.")
-
-        user_model = get_user_model()
-        user = user_model.objects.filter(user_id=payload["user_id"]).first()
-
-        if not user:
-            return Response(
-                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            travel_name = serializer.validated_data["name"]
-            travel = Travel.objects.filter(name=travel_name).first()
-
-            if not travel:
-                return Response(
-                    {"detail": "Travel not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            elif travel.empty_travellers < travel.travellers:
-                travel.empty_travellers += 1
-                travel.save()
-                tg, created = TravellersGroup.objects.get_or_create(travel_is=travel)
-                tg.users.add(user)
-                TravelRateUser.objects.create(travel,user)
-                return Response(
-                    {"detail": "Travel successfully booked."},
-                    status=status.HTTP_201_CREATED,
-                )
-            else:
-                return Response(
-                    {"detail": "This travel is full."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class PostTravelView(APIView):
     serializer_class = TravelPostSerializer
     authenticated_classes = [TokenAuthentication]
@@ -447,11 +439,13 @@ class PostTravelView(APIView):
         serializer=TravelPostSerializer(data=request.data)
         if serializer.is_valid():
             if not request.data.get('photo'):
-                travel =  serializer.save(admin=user)
+                key=random.randint(1000, 9999)
+                travel =  serializer.save(admin=user,key=key)
                 TravellersGroup.objects.create(travel_is=travel)
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            travel =  serializer.save(admin=user,photo=request.data.get('photo'))
+            key = random.randint(1000, 9999)
+            travel =  serializer.save(admin=user,photo=request.data.get('photo'),key=key)
             TravellersGroup.objects.create(travel_is=travel)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -669,202 +663,184 @@ class UserFullyRateView(APIView):
         total_sleep=total_sleep_rate/len(sleep_rates)
         rate=(total_money+total_sleep)/2
         return Response({"total":rate,"total_money":total_money,"total_sleep":total_sleep})
-# class UserRateView(APIView):
-#     serializer_class = UserRateSerializer
-#     authentication_classes = [TokenAuthentication]
+class AddTravelUserView(APIView):
+    serializer_class = TravelPostGroupSerializer
+    authentication_classes = [TokenAuthentication]
 
-#     def get(self, request, *args, **kwargs):
-#         user_token = request.COOKIES.get("access_token")
-#         if not user_token:
-#             raise AuthenticationFailed("Unauthenticated user.")
+    def post(self, request):
 
-#         try:
-#             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-#         except jwt.ExpiredSignatureError:
-#             raise AuthenticationFailed("Token has expired.")
-#         except jwt.InvalidTokenError:
-#             raise AuthenticationFailed("Invalid token.")
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
 
-#         user_model = get_user_model()
-#         user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
 
-#         if not user:
-#             return Response(
-#                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-#             )
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
 
-#         rate = user.rate
-#         return Response({"rate": rate}, status=status.HTTP_200_OK)
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
-#     def post(self, request, *args, **kwargs):
-#         user_token = request.COOKIES.get("access_token")
-#         if not user_token:
-#             raise AuthenticationFailed("Unauthenticated user.")
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            travel_name = serializer.validated_data["name"]
 
-#         try:
-#             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-#         except jwt.ExpiredSignatureError:
-#             raise AuthenticationFailed("Token has expired.")
-#         except jwt.InvalidTokenError:
-#             raise AuthenticationFailed("Invalid token.")
+            travel = Travel.objects.filter(name=travel_name).first()
+            if not travel:
+                return Response(
+                    {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+                )
 
-#         user_model = get_user_model()
-#         user = user_model.objects.filter(user_id=payload["user_id"]).first()
+            if travel.status == "Private":  
+                key=request.data.get('key')
+                if str(travel.key).strip() != str(key).strip():
+                    return Response("your key is not correct",status=status.HTTP_403_FORBIDDEN)
+            if travel.empty_travellers >= travel.travellers:
+                return Response(
+                    {"detail": "This travel is full."}, status=status.HTTP_400_BAD_REQUEST
+                )
+            Requests.objects.create(user_request=user, travel=travel,travel_name=travel.name)
+            admin = travel.admin
+            email = admin.email
+            send_mail(
+                subject="Request to join travel",
+                message=f"Hello {admin.user_name},\n\nYou have a new request from {user.user_name} to join the travel group '{travel_name}'.",
+                from_email="triiptide@gmail.com",
+                recipient_list=[email],
+            )
+            return Response(
+                {"detail": "Your request has been sent to the admin."},
+                status=status.HTTP_201_CREATED,
+            )
 
-#         if not user:
-#             return Response(
-#                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-#             )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class RequestView(APIView):
+    authentication_classes = [TokenAuthentication]
 
-#         serializer = UserRateSerializer(data=request.data)
-#         if serializer.is_valid():
-#             username = serializer.validated_data['user_name']
-#             rate_add = serializer.validated_data['rate']
-#             if rate_add>5 or rate_add<0:
-#                 return Response("the rate should be 0 to 5")
-#             add_rate_user = User.objects.filter(user_name=username).first()
+    def get_user_from_token(self, token):
+        """Helper method to decode JWT token and fetch the user."""
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
 
-#             if not add_rate_user:
-#                 return Response({"detail": "User to rate not found."}, status=status.HTTP_404_NOT_FOUND)
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload.get("user_id")).first()
 
-#             rate_user, created = UserRate.objects.get_or_create(user=add_rate_user)
-#             if user in rate_user.rated_by.all():
-#                 return Response({"detail": "You have already rated this user."}, status=status.HTTP_400_BAD_REQUEST)
+        if not user:
+            raise AuthenticationFailed("User not found.")
+        return user
 
-#             rate_user.rated_by.add(user)
-#             rate_user.number_rated_by += 1
+    def get(self, request):
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
 
-#             rated=add_rate_user.rate+rate_add
+        user = self.get_user_from_token(user_token)
 
-#             add_rate_user.rate = rated / rate_user.number_rated_by
+        requests_to_add = Requests.objects.filter(travel__admin=user)
+        if not requests_to_add.exists():
+            return Response(
+                {"detail": "There are no requests."}, status=status.HTTP_404_NOT_FOUND
+            )
 
-#             add_rate_user.save()
-#             rate_user.save()
+        serializer = RequestSerializer(requests_to_add, many=True, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-#             return Response(f"You rated {username} successfully.", status=status.HTTP_200_OK)
+    def post(self, request):
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
 
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = self.get_user_from_token(user_token)
 
+        is_accept = request.data.get("is_accept")
+        travel_name = request.data.get("travel_name")
+        user_name = request.data.get("user_name")
 
-# class TravelRateView(APIView):
-#     serializer_class = TravelRateSerializer
-#     authentication_classes = [TokenAuthentication]
+        if not (travel_name and user_name):
+            return Response(
+                {"detail": "Travel name and user name are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-#     def post(self, request, *args, **kwargs):
-#         user_token = request.COOKIES.get("access_token")
-#         if not user_token:
-#             raise AuthenticationFailed("Unauthenticated user.")
+        try:
+            user_add = get_user_model().objects.get(user_name=user_name)
+        except get_user_model().DoesNotExist:
+            return Response(
+                {"detail": "The specified user does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-#         try:
-#             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-#         except jwt.ExpiredSignatureError:
-#             raise AuthenticationFailed("Token has expired.")
-#         except jwt.InvalidTokenError:
-#             raise AuthenticationFailed("Invalid token.")
+        travel = Travel.objects.filter(name=travel_name).first()
+        if not travel:
+            return Response(
+                {"detail": "This travel does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-#         user_model = get_user_model()
-#         user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        if travel.admin != user:
+            return Response(
+                {"detail": "You are not the admin of this travel."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-#         if not user:
-#             return Response(
-#                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-#             )
+        if is_accept == "True":
+            if travel.empty_travellers >= travel.travellers:
+                return Response(
+                    {"detail": "This travel is full."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-#         serializer = TravelRateSerializer(data=request.data)
-#         if serializer.is_valid():
-#             travel_name = serializer.validated_data[
-#                 "travel_name"
-#             ]
-#             travel = Travel.objects.filter(name=travel_name).first()
+            travel.empty_travellers += 1
+            travel.save()
 
-#             if not travel:
-#                 return Response(
-#                     {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
-#                 )
+            tg, created = TravellersGroup.objects.get_or_create(travel_is=travel)
+            tg.users.add(user_add)
+            tg.save()
 
-#             group = TravellersGroup.objects.filter(travel_is=travel).first()
-#             if not group:
-#                 return Response(
-#                     {"detail": "Travel group not found."}, status=status.HTTP_404_NOT_FOUND
-#                 )
+           
+            TravelUserRateMoney.objects.create(travel=travel, user_rated=user_add)
+            TravelUserRateSleep.objects.create(travel=travel, user_rated=user_add)
 
-#             is_part_of_group = group.users.filter(user_id=user.id).exists()
-#             is_admin = travel.admin == user
+            request_record = Requests.objects.filter(
+                user_request=user_add, travel__name=travel_name
+            ).first()
+            if request_record:
+                request_record.delete()
 
-#             if not (is_part_of_group or is_admin):
-#                 return Response(
-#                     {"detail": "User is not authorized to rate this travel."},
-#                     status=status.HTTP_403_FORBIDDEN,
-#                 )
-#             if travel.rated_by_user.filter(pk=user.pk).exists():
-#                 return Response({"error": "You have already rated this travel."}, status=status.HTTP_400_BAD_REQUEST)
+            send_mail(
+                subject="Request Approved",
+                message=(
+                    f"Hello {user_add.user_name},\n"
+                    f"You have been accepted into travel '{travel_name}'."
+                ),
+                from_email="triiptide@gmail.com",
+                recipient_list=[user_add.email],
+            )
 
-#             total_rate = travel.rate * travel.rated_by
-#             total_rate += serializer.validated_data["rate"]
-#             travel.rated_by += 1
-#             travel.rate = total_rate / travel.rated_by
-#             travel.rated_by_user.add(user)
-#             travel.save()
+            return Response(
+                {"detail": "User added to the group."}, status=status.HTTP_200_OK
+            )
 
-#             return Response({"success": "You rated successfully."})
+        return Response(
+            {"detail": "You have not accepted the request."}, status=status.HTTP_200_OK
+        )
 
-#         return Response(
-#             {"error": "Your input data is invalid."}, status=status.HTTP_400_BAD_REQUEST
-#         )
-# def get(self, request, *args, **kwargs):
-#     user_token = request.headers.get("Authorization")
+    def delete(self, request):
+        cutoff_date = now() - timedelta(days=10)
+        deleted_count, _ = Requests.objects.filter(created_at__lt=cutoff_date).delete()
 
-#     if not user_token:
-#         raise AuthenticationFailed("Authorization token not provided.")
-
-#     try:
-#         payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-#     except jwt.ExpiredSignatureError:
-#         raise AuthenticationFailed("Token has expired.")
-#     except jwt.InvalidTokenError:
-#         raise AuthenticationFailed("Invalid token.")
-
-#     user_model = get_user_model()
-#     user = user_model.objects.filter(user_id=payload["user_id"]).first()
-
-#     if not user:
-#         return Response(
-#             {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-#         )
-
-#     travel_name = request.data.get("travel_name")
-#     if not travel_name:
-#         return Response(
-#             {"detail": "Travel name is required."},
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     travel = Travel.objects.filter(name=travel_name).first()
-#     if not travel:
-#         return Response(
-#             {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
-#         )
-
-#     user_money_rate = TravelUserRateMoney.objects.filter(
-#         user_rated=user, travel=travel
-#     ).first()
-#     user_sleep_rate = TravelUserRateSleep.objects.filter(
-#         user_rated=user, travel=travel
-#     ).first()
-#     money_rate = user_money_rate.rate if user_money_rate else None
-#     sleep_rate = user_sleep_rate.rate if user_sleep_rate else None
-#     user_rate = user.rate if user.rate is not None else None
-
-#     if money_rate is None and sleep_rate is None:
-#         return Response(
-#             {"detail": "No ratings found for the user in this travel."},
-#             status=status.HTTP_404_NOT_FOUND,
-#         )
-#     return Response(
-#         {
-#             "money_rate": money_rate,
-#             "sleep_rate": sleep_rate,
-#             "user_rate": user_rate,
-#         },
-# #         status=status.HTTP_200_OK,
-#     )
+        return Response(
+            {"message": f"Deleted {deleted_count} old request(s) successfully."},
+            status=status.HTTP_200_OK,
+        )

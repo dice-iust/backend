@@ -1,8 +1,6 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
-
-User = get_user_model()
+from django.conf import settings
 
 
 class Travel(models.Model):
@@ -14,8 +12,9 @@ class Travel(models.Model):
         ("Car", "Car"),
     ]
     STATUS_CHOICES = [("Private", "Private"), ("Public", "Public")]
+
     admin = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="admin_trips"
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="admin_trips"
     )
     name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -34,9 +33,9 @@ class Travel(models.Model):
     rate = models.IntegerField(default=0)
     rated_by = models.IntegerField(default=0)
     rated_by_user = models.ManyToManyField(
-        User, related_name="rated_by_user_travel", blank=True
+        settings.AUTH_USER_MODEL, related_name="rated_by_user_travel", blank=True
     )
-
+    key=models.IntegerField(blank=True, null=True,default=0000)
     def __str__(self):
         return self.destination
 
@@ -52,18 +51,18 @@ class TravellersGroup(models.Model):
     travel_is = models.OneToOneField(
         Travel, on_delete=models.PROTECT, related_name="travel_group"
     )
-    users = models.ManyToManyField(User, related_name="travel_group_person")
-
-
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="travel_group_person"
+    )
 
 
 class UserRate(models.Model):
     user = models.OneToOneField(
-        User, on_delete=models.PROTECT, related_name="user_rate"
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="user_rate"
     )
-    rated_by = models.ManyToManyField(User, related_name="rated_by_user", blank=True)
+    rated_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="rated_by_user", blank=True
+    )
     number_rated_by = models.PositiveIntegerField(default=0)
 
     def __str__(self):
@@ -75,9 +74,13 @@ class TravelUserRateMoney(models.Model):
         Travel, on_delete=models.CASCADE, related_name="user_ratings_money"
     )
     user_rated = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="ratings_received_money"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings_received_money",
     )
-    rated_by = models.ManyToManyField(User, related_name="ratings_given_money")
+    rated_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="ratings_given_money"
+    )
     rate = models.IntegerField(blank=True, default=0)
 
     def __str__(self):
@@ -91,12 +94,27 @@ class TravelUserRateSleep(models.Model):
         Travel, on_delete=models.CASCADE, related_name="user_ratings_sleep"
     )
     user_rated = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="ratings_received_sleep"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings_received_sleep",
     )
-    rated_by = models.ManyToManyField(User, related_name="ratings_given_sleep")
+    rated_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="ratings_given_sleep"
+    )
     rate = models.IntegerField(blank=True, default=0)
 
     def __str__(self):
         return (
             f"{self.rated_by} rated {self.user_rated} as {self.rate} in {self.travel}"
         )
+class Requests(models.Model):
+    user_request = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="request_user",
+    )
+    travel = models.ForeignKey(
+        Travel, on_delete=models.CASCADE, related_name="travel_request"
+    )
+    travel_name = models.CharField(max_length=200,blank=True, null=True)
+    created_at = models.DateField(auto_now_add=True)
