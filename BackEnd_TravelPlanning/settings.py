@@ -6,8 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-^t2!686ei!1!ow+)ms-5bdx1m*h@@!noyddg_i!ond#d+!m2l0"
 
 DEBUG = True
-
 ALLOWED_HOSTS = ['triptide.pythonanywhere.com', '127.0.0.1','localhost']
+
+ABLY_API_KEY = "w9hDjQ.bDJwDg:nV7gxEThhWT4clJqHv9K3syB3SQCDrkcgaoChiWmRQY"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -53,12 +54,15 @@ ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
 #         },
 #     }
 # }
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
-
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
+# PUSHER_APP_ID = "1912577"
+# PUSHER_KEY = "2fd04b6bb46ded07a8c6"
+# PUSHER_SECRET = "b13bdb7c9845314e71a9"
+# PUSHER_CLUSTER = "ap3"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -139,7 +143,8 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ORIGIN_ALLOW_ALL = True
-
+CSRF_COOKIE_SECURE = False  # Ensure this is set if you're using HTTP rather than HTTPS
+CSRF_COOKIE_HTTPONLY = False
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
