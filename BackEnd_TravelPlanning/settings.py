@@ -6,7 +6,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-^t2!686ei!1!ow+)ms-5bdx1m*h@@!noyddg_i!ond#d+!m2l0"
 
 DEBUG = True
-
 ALLOWED_HOSTS = ['triptide.pythonanywhere.com', '127.0.0.1','localhost']
 
 ABLY_API_KEY = "w9hDjQ.bDJwDg:nV7gxEThhWT4clJqHv9K3syB3SQCDrkcgaoChiWmRQY"
@@ -144,7 +143,8 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ORIGIN_ALLOW_ALL = True
-
+CSRF_COOKIE_SECURE = False  # Ensure this is set if you're using HTTP rather than HTTPS
+CSRF_COOKIE_HTTPONLY = False
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
