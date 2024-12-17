@@ -208,7 +208,7 @@ class UserMiddleRateSerializer(serializers.Serializer):
     rate_money = serializers.IntegerField(required=False)
 
 class RequestSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
+    user_request = UserSerializer()
     class Meta:
         model = Requests
         fields =['travel_name',"user"]
