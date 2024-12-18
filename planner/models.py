@@ -19,16 +19,16 @@ class Expense(models.Model):
     ]
 
     CATEGORY_ICONS = {
-        "Accommodation": "/static/icons/accommodation.png",
-        "Entertainment": "/static/icons/Entertainment.png",
-        "Groceries": "/static/icons/Groceries.png",
-        "Healthcare": "/static/icons/Healthcare.png",
-        "Insurance": "/static/icons/Insurance.png",
-        "Rent & Charges": "/static/icons/Rent.png",
-        "Restaurants & Bars": "/static/icons/Restaurant.png",
-        "Shopping": "/static/icons/Shopping.png",
-        "Transport": "/static/icons/Transport.png",
-        "Other": "/static/icons/Other.png",
+        "Accommodation": "/media/icons/accommodation.jpg",
+        "Entertainment": "/media/icons/Entertainment.jpg",
+        "Groceries": "/media/icons/Groceries.jpg",
+        "Healthcare": "/media/icons/Healthcare.jpg",
+        "Insurance": "/media/icons/Insurance.jpg",
+        "Rent & Charges": "/media/icons/Rent.jpg",
+        "Restaurants & Bars": "/media/icons/Restaurant.jpg",
+        "Shopping": "/media/icons/Shopping.jpg",
+        "Transport": "/media/icons/Transport.jpg",
+        "Other": "/media/icons/Other.jpg",
 
     }
 
@@ -40,9 +40,8 @@ class Expense(models.Model):
     created_at = models.DateField(auto_now_add=True)
     title = models.CharField(max_length=100, default="payment", null=True)
     description = models.TextField(null=True)
-    receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True,default="/pay.jpg")
+    receipt_image = models.ImageField(upload_to='receipts/',default="/pay.jpg")
     is_paid = models.BooleanField(default=False)
-
 
     @property
     def category_icon(self):
