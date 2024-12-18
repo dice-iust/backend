@@ -1,45 +1,52 @@
-from django.http import JsonResponse
 from django.views import View
 import json
 from ably import AblyRest
 from django.conf import settings
 import logging
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
+from .serializers import ChatSerializer
+from .models import ChatMessage
+from Travels.models import Travel, TravellersGroup
 
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
+@api_view(['POST'])
 def AblyMessagePublishView(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        message = data.get('message')
-        travel_name = data.get('travel_name')
-        token = data.headers.get('Authorization')
+    message = request.data.get('message')
+    travel_name = request.data.get('travel_name')
+    token = request.headers.get('Authorization')
 
-        if not message or not travel_name or not token:
-            return JsonResponse({"error": "Missing required parameters"}, status=400)
+    if not message or not travel_name or not token:
+        return Response({"error": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = get_user_from_token(token)
-        if not user:
-            return JsonResponse({"error": "Invalid or expired token"}, status=400)
+    user = get_user_from_token(token)
+    if not user:
+        return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
 
-        travel, tg = get_travel_and_group(travel_name, user)
+    travel, tg = get_travel_and_group(travel_name, user)
+    if not travel or not tg:
+        return Response({"error": "Travel or group not found or unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        ably = AblyRest(settings.ABLY_API_KEY)
-        room_group_name = f"travel_{travel_name}"
-        channel = ably.channels.get(room_group_name)
+    from ably import AblyRest
+    ably = AblyRest(settings.ABLY_API_KEY)
+    room_group_name = f"travel_{travel_name}"
+    channel = ably.channels.get(room_group_name)
 
-        channel.publish("chat", {"message": message, "user_name": user.user_name})
+    channel.publish("chat", {"message": message, "user_name": user.user_name})
+    ChatMessage.objects.create(
+        sender=user,
+        travellers_group=tg,
+        message=message,
+        travel_name=travel_name,
+    )
 
-        ChatMessage.objects.create(
-            sender=user,
-            travellers_group=tg,
-            message=message,
-            travel_name=travel_name,
-        )
+    logger.info(f"Message published to Ably channel: {room_group_name}")
+    return Response({"status": "Message published successfully"}, status=status.HTTP_200_OK)
 
-        logger.info(f"Message published to Ably channel: {room_group_name}")
-        return JsonResponse({"status": "Message published successfully"}, status=200)
 
 def get_user_from_token(token):
     try:
