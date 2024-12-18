@@ -37,11 +37,12 @@ class Expense(models.Model):
     payer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payer_expenses",null=True)
     participants = models.ManyToManyField(User, related_name="participant_expenses")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="Other", null=True)
-    is_settled = models.BooleanField(default=False)
     created_at = models.DateField(auto_now_add=True)
     title = models.CharField(max_length=100, default="payment", null=True)
     description = models.TextField(null=True)
     receipt_image = models.ImageField(upload_to='receipts/', null=True, blank=True,default="/pay.jpg")
+    is_paid = models.BooleanField(default=False)
+
 
     @property
     def category_icon(self):
@@ -52,6 +53,8 @@ class Expense(models.Model):
         if self.participants.exists():
             return self.amount / self.participants.count()
         return 0
+
+
 
 
 class Settlement(models.Model):

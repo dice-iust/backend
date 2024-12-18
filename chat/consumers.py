@@ -7,6 +7,7 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from asgiref.sync import sync_to_async
 from ably import AblyRest
 import logging
+from channels.layers import get_channel_layer
 
 logger = logging.getLogger(__name__)
 

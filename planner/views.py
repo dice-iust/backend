@@ -321,3 +321,44 @@ class AllPayView(APIView):
             expenses, many=True, context={"request": request}
         )
         return Response({"pays": serializer.data}, status=status.HTTP_200_OK)
+
+
+class MarkAsPaidAPIView(APIView):
+    def post(self, request):
+        expense_id = request.data.get("expense_id")
+        if not expense_id:
+            return Response({"error": "Expense ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+        token = request.headers.get("Authorization")
+        if not token:
+            raise AuthenticationFailed("No token provided.")
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+
+        user = User.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            raise AuthenticationFailed("User not found.")
+
+
+        expense = Expense.objects.filter(id=expense_id).first()
+        if not expense:
+            return Response({"error": "Expense not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+        if user != expense.payer and user not in expense.participants.all():
+            return Response(
+                {"error": "You are not authorized to mark this expense as paid."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+
+        expense.is_settled = True
+        expense.save()
+
+        return Response({"message": "Expense marked as paid successfully."}, status=status.HTTP_200_OK)
