@@ -51,7 +51,7 @@ class CreateExpenseAPIView(APIView):
             )
 
         try:
-            # Fetch travel and group details
+       
             travel_pay = Travel.objects.filter(name=travel_name).first()
             travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
         except TravellersGroup.DoesNotExist:
@@ -60,7 +60,6 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Check if user is a participant or admin of the travel
         if user not in travel_group.users.all() and user != travel_pay.admin:
             return Response(
                 {
@@ -70,16 +69,16 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Get all participants in the travel group
+    
         participants_in_travel = travel_group.users.all()
         if travel_pay.admin not in participants_in_travel:
             participants_in_travel = participants_in_travel | User.objects.filter(
                 user_id=travel_pay.admin.user_id
             )
 
-        # Prepare a list of valid participants with their user_name
+    
         valid_participants = [
-            {"user_name": participant.user_name}  # Use the correct field name
+            {"user_name": participant.user_name}
             for participant in participants_in_travel
         ]
 
@@ -122,7 +121,7 @@ class CreateExpenseAPIView(APIView):
 
         try:
             travel_pay = Travel.objects.filter(name=travel_name).first()
-            travel_group = TravellersGroup.objects.get(travel_is=travel_pay)
+            travel_group = TravellersGroup.objects.filter(travel_is=travel_pay).first()
         except TravellersGroup.DoesNotExist:
             return Response(
                 {"message": "Travel not found.", "context": context},
@@ -161,7 +160,8 @@ class CreateExpenseAPIView(APIView):
             if request.data.get("receipt_image"):
                 expense = serializer.save(travel=travel_group)
                 expense.participants.set(participants)
-                expense.save(receipt_image=request.data.get("receipt_image"))
+                expense.receipt_image=request.data.get("receipt_image")
+                expense.save()
                 return Response(
                     {
                         "data": serializer.data,
@@ -233,11 +233,11 @@ class DebtsAPIView(APIView):
                 user_id=travel.admin.user_id
             )
 
-        # Initialize debts to track what the user owes and what others owe to the user
+
         debts = {
             participant.user_name: {
-                "user": 0,  # Track user's debt to others
-                "others": 0,  # Track what others owe to the user
+                "user": 0, 
+                "others": 0, 
             }
             for participant in participants_in_travel
         }
@@ -245,22 +245,21 @@ class DebtsAPIView(APIView):
         expenses = Expense.objects.filter(travel=travel_group)
         for expense in expenses:
             participants = expense.participants.all()
-            total_participants = len(participants) + 1  # Including the payer
+            total_participants = len(participants) + 1
             share_per_user = (
                 expense.amount / total_participants if total_participants else 0
             )
 
             for participant in participants:
                 if expense.payer == user and participant != user:
-                    # Participant owes the user
+                 
                     debts[participant.user_name]["others"] += share_per_user
                     debts[user.user_name]["user"] -= share_per_user
                 elif expense.payer != user and participant != user:
-                    # User owes the participant
+               
                     debts[participant.user_name]["user"] += share_per_user
                     debts[expense.payer.user_name]["others"] -= share_per_user
 
-        # Separate user debts and what others owe to the user
         user_debts_to_others = {
             key: value["user"] for key, value in debts.items() if value["user"] > 0
         }
@@ -268,12 +267,12 @@ class DebtsAPIView(APIView):
             key: value["others"] for key, value in debts.items() if value["others"] > 0
         }
 
-        has_debt = bool(user_debts_to_others)  # If the user has debt to others
-        has_credit = bool(others_debt_to_user)  # If others owe money to the user
+        has_debt = bool(user_debts_to_others)  
+        has_credit = bool(others_debt_to_user) 
 
         response_data = {
-            "user_debts_to_others": user_debts_to_others,  # What user owes to others
-            "others_debt_to_user": others_debt_to_user,  # What others owe to user
+            "user_debts_to_others": user_debts_to_others,
+            "others_debt_to_user": others_debt_to_user, 
             "has_debt": has_debt,
             "has_credit": has_credit,
             "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}/payment.jpg",

@@ -32,18 +32,12 @@ class ExpenseSerializer(serializers.ModelSerializer):
         ]
 
     def get_category_icon(self, obj):
-        """Return the full URL of the category icon based on the category."""
-        icon_path = obj.category_icon  # Get the relative path from the model's property
+
+        icon_path = obj.category_icon  
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(icon_path)
-        return icon_path  # Fallback to relative path
-
-    def get_image(self, obj):
-        if obj.receipt_image and hasattr(obj.receipt_image, "url"):
-            return self.context["request"].build_absolute_uri(obj.receipt_image.url)
-        return None
-
+        return icon_path  
 
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
