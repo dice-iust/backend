@@ -256,7 +256,7 @@ class DebtsAPIView(APIView):
             travel_name = request.query_params.get("travel_name")
             travel = Travel.objects.filter(name=travel_name).first()
             travel_group = TravellersGroup.objects.get(travel_is__name=travel_name)
-        except TravellersGroup.DoesNotExist:
+        except (Travel.DoesNotExist, TravellersGroup.DoesNotExist):
             return Response(
                 {"message": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
             )
@@ -267,43 +267,40 @@ class DebtsAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        participants_in_travel = travel_group.users.all()
+        participants_in_travel = list(travel_group.users.all())
         if travel.admin not in participants_in_travel:
-            participants_in_travel = participants_in_travel | User.objects.filter(
-                user_id=travel.admin.user_id
-            )
+            participants_in_travel.append(travel.admin)
 
         debts = {
             participant.user_name: {
-                "user": 0,
-                "others": 0,
+                other.user_name: 0.0 for other in participants_in_travel
             }
             for participant in participants_in_travel
         }
 
         expenses = Expense.objects.filter(travel=travel_group)
         for expense in expenses:
-            participants = expense.participants.all()
-            total_participants = len(participants) + 1
+            participants = list(expense.participants.all())
+            total_participants = len(participants)
             share_per_user = (
-                expense.amount / total_participants if total_participants else 0
+                float(expense.amount) / total_participants if total_participants else 0
             )
 
             for participant in participants:
-                if expense.payer == user and participant != user:
+                if participant != expense.payer:
+                    debts[expense.payer.user_name][
+                        participant.user_name
+                    ] += share_per_user
+                    debts[participant.user_name][
+                        expense.payer.user_name
+                    ] -= share_per_user
 
-                    debts[participant.user_name]["others"] += share_per_user
-                    debts[user.user_name]["user"] -= share_per_user
-                elif expense.payer != user and participant != user:
-
-                    debts[participant.user_name]["user"] += share_per_user
-                    debts[expense.payer.user_name]["others"] -= share_per_user
-
+        # Prepare the response data
         user_debts_to_others = {
-            key: value["user"] for key, value in debts.items() if value["user"] > 0
+            key: value for key, value in debts[user.user_name].items() if value < 0
         }
         others_debt_to_user = {
-            key: value["others"] for key, value in debts.items() if value["others"] > 0
+            key: value for key, value in debts[user.user_name].items() if value > 0
         }
 
         has_debt = bool(user_debts_to_others)
@@ -314,7 +311,7 @@ class DebtsAPIView(APIView):
             "others_debt_to_user": others_debt_to_user,
             "has_debt": has_debt,
             "has_credit": has_credit,
-            "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}/payment.jpg",
+            "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}payment.jpg",
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
