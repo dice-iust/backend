@@ -160,20 +160,50 @@ class CreateExpenseAPIView(APIView):
                 user_id=travel_pay.admin.user_id
             )
 
+        participants_data = request.data.get("participants", "")
+        if isinstance(participants_data, str):
+            participants_usernames = [
+                username.strip()
+                for username in participants_data.split(",")
+                if username.strip()
+            ]
+        elif isinstance(participants_data, list):
+            participants_usernames = participants_data
+        else:
+            return Response(
+                {"message": "Invalid participants format.", "context": context},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        participants_data = request.data.get("participants", "")
+        if isinstance(participants_data, str):
+            participants_usernames = [
+                username.strip()
+                for username in participants_data.split(",")
+                if username.strip()
+            ]
+        elif isinstance(participants_data, list):
+            participants_usernames = participants_data
+        else:
+            return Response(
+                {"message": "Invalid participants format.", "context": context},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         participants = []
-        for participant_data in request.data.get("participants", []):
-            # Look up user by user_name
-            participant = User.objects.filter(user_name=participant_data).first()
+        for participant_username in participants_usernames:
+            participant = User.objects.filter(user_name=participant_username).first()
             if participant:
                 participants.append(participant)
             else:
                 return Response(
                     {
-                        "message": f"User {participant_data['user_name']} does not exist.",
+                        "message": f"User {participant_username} does not exist.",
                         "context": context,
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
         # Process and save the expense
         serializer = self.serializer_class(
             data=request.data, context={"request": request}

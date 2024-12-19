@@ -13,9 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ExpenseSerializer(serializers.ModelSerializer):
     category_icon = serializers.SerializerMethodField()
-    participants = serializers.SlugRelatedField(
-        slug_field="user_name", queryset=Users.objects.all(), many=True
-    )
+    participants = serializers.CharField(required=False)
     payer = serializers.SlugRelatedField(
         slug_field="user_name", queryset=Users.objects.all()
     )
@@ -42,6 +40,45 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(icon_path)
         return icon_path
+
+    def validate_participants(self, value):
+        """
+        This method converts the comma-separated string of usernames into a list of User objects.
+        """
+        if isinstance(value, str):
+            # Split the string by commas and strip whitespace from each username
+            participants_usernames = [
+                username.strip() for username in value.split(",") if username.strip()
+            ]
+        else:
+            raise serializers.ValidationError(
+                "Participants should be a comma-separated string."
+            )
+
+        participants = []
+        for participant_username in participants_usernames:
+            participant = Users.objects.filter(user_name=participant_username).first()
+            if participant:
+                participants.append(participant.user_id)
+            else:
+                raise serializers.ValidationError(
+                    f"User {participant_username} does not exist."
+                )
+
+        return participants
+
+    def create(self, validated_data):
+        """
+        Override the create method to save participants correctly.
+        """
+        participants = validated_data.pop("participants", [])
+        expense = Expense.objects.create(**validated_data)
+
+        # Assign the participants to the expense
+        expense.participants.set(participants)
+        expense.save()
+
+        return expense
 
 
 class GetUserSerializer(serializers.ModelSerializer):
