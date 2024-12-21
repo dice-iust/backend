@@ -4,19 +4,15 @@ from django.contrib.auth import get_user_model
 
 Users = get_user_model()
 
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
         fields = ["user_name"]
 
-
 class ExpenseSerializer(serializers.ModelSerializer):
     category_icon = serializers.SerializerMethodField()
     participants = serializers.CharField(required=False)
-    payer = serializers.SlugRelatedField(
-        slug_field="user_name", queryset=Users.objects.all()
-    )
+    payer = serializers.SlugRelatedField(slug_field="user_name", queryset=Users.objects.all())
     receipt_image = serializers.ImageField(required=False)
 
     class Meta:
@@ -34,31 +30,29 @@ class ExpenseSerializer(serializers.ModelSerializer):
         ]
 
     def get_category_icon(self, obj):
-        # Check if the category is not null or empty
-        if obj.category:
-            icon_path = (
-                obj.category_icon or "media/icons/Other.jpg"
-            )  # Default path if category_icon is null
+        # Default to "Other" if no category is specified
+        if not obj.category:
+            category_icon = "Other.jpg"
         else:
-            icon_path = "media/icons/Other.jpg"  # Default path if category is null
+            category_icon = obj.category_icon or "Other.jpg"  # If category_icon is not set, fallback to "Other.jpg"
 
-        # Build and return the absolute URL for the icon
+        # Construct the absolute URL for the icon
+        icon_path = f"/media/icons/{category_icon}"
+
+        # Get the request object to build an absolute URL
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(icon_path)
-        return f"http://triptide.pythonanywhere.com{icon_path}"
 
+        # Fallback URL for when no request context is available
+        return f"http://triptide.pythonanywhere.com{icon_path}"
     def validate_participants(self, value):
 
         if isinstance(value, str):
             # Split the string by commas and strip whitespace from each username
-            participants_usernames = [
-                username.strip() for username in value.split(",") if username.strip()
-            ]
+            participants_usernames = [username.strip() for username in value.split(",") if username.strip()]
         else:
-            raise serializers.ValidationError(
-                "Participants should be a comma-separated string."
-            )
+            raise serializers.ValidationError("Participants should be a comma-separated string.")
 
         participants = []
         for participant_username in participants_usernames:
@@ -66,17 +60,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
             if participant:
                 participants.append(participant.user_id)
             else:
-                raise serializers.ValidationError(
-                    f"User {participant_username} does not exist."
-                )
+                raise serializers.ValidationError(f"User {participant_username} does not exist.")
 
         return participants
-
     def create(self, validated_data):
         """
         Override the create method to save participants correctly.
         """
-        participants = validated_data.pop("participants", [])
+        participants = validated_data.pop('participants', [])
         expense = Expense.objects.create(**validated_data)
 
         # Assign the participants to the expense
@@ -84,12 +75,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
         expense.save()
 
         return expense
-
-
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
-        fields = ["user_name", "profilePicture"]
+        fields = ["user_name","profilePicture"]
 
 
 class GetExpenseSerializer(serializers.ModelSerializer):
@@ -113,23 +102,34 @@ class GetExpenseSerializer(serializers.ModelSerializer):
         ]
 
     def get_category_icon(self, obj):
-        """Return the full URL of the category icon based on the category."""
-        icon_path = obj.category_icon  # Get the relative path from the model's property
+        # Default to "Other" if no category is specified
+        if not obj.category:
+            category_icon = "Other.jpg"
+        else:
+            category_icon = obj.category_icon or "Other.jpg"  # If category_icon is not set, fallback to "Other.jpg"
+
+        # Construct the absolute URL for the icon
+        icon_path = f"/media/icons/{category_icon}"
+
+        # Get the request object to build an absolute URL
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(icon_path)
-        return icon_path  # Fallback to relative path
 
+        # Fallback URL for when no request context is available
+        return f"http://triptide.pythonanywhere.com{icon_path}"
     def get_image(self, obj):
         if obj.receipt_image and hasattr(obj.receipt_image, "url"):
             return self.context["request"].build_absolute_uri(obj.receipt_image.url)
         return None
 
 
+
+
 class PastPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = PastPayment
-        fields = ["user", "expense", "amount", "date", "description"]
+        fields = ['user', 'expense', 'amount', 'date', 'description']
 
 
 class MarkAsPaidSerializer(serializers.Serializer):
