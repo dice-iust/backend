@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Expense, Settlement
+from .models import Expense, Settlement, PastPayment
 from django.contrib.auth import get_user_model
 
 Users = get_user_model()
@@ -34,17 +34,22 @@ class ExpenseSerializer(serializers.ModelSerializer):
         ]
 
     def get_category_icon(self, obj):
+        # Check if the category is not null or empty
+        if obj.category:
+            icon_path = (
+                obj.category_icon or "media/icons/Other.jpg"
+            )  # Default path if category_icon is null
+        else:
+            icon_path = "media/icons/Other.jpg"  # Default path if category is null
 
-        icon_path = obj.category_icon
+        # Build and return the absolute URL for the icon
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(icon_path)
-        return icon_path
+        return f"http://triptide.pythonanywhere.com{icon_path}"
 
     def validate_participants(self, value):
-        """
-        This method converts the comma-separated string of usernames into a list of User objects.
-        """
+
         if isinstance(value, str):
             # Split the string by commas and strip whitespace from each username
             participants_usernames = [
@@ -119,3 +124,14 @@ class GetExpenseSerializer(serializers.ModelSerializer):
         if obj.receipt_image and hasattr(obj.receipt_image, "url"):
             return self.context["request"].build_absolute_uri(obj.receipt_image.url)
         return None
+
+
+class PastPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PastPayment
+        fields = ["user", "expense", "amount", "date", "description"]
+
+
+class MarkAsPaidSerializer(serializers.Serializer):
+    expense_id = serializers.IntegerField()
+    receiver_username = serializers.CharField(max_length=100)
