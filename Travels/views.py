@@ -60,7 +60,7 @@ class AllTravels(generics.ListAPIView):
     #     # "start_place",
     #     "start_date","end_date"
     # ]
-    filterset_fields = ("start_date", "end_date", "start_place", "transportation")
+    filterset_fields = ("start_date", "end_date", "start_place", "transportation",'name')
 
 
 class TravelViewSpring(ListAPIView):
@@ -290,7 +290,6 @@ class TravelViewShort(ListAPIView):
         }
         return Response(context, status=status.HTTP_200_OK)
 
-
 class SingleTravelView(APIView):
     serializer_class = TravelGroupSerializer
     permission_classes = [AllowAny]
@@ -348,6 +347,7 @@ class SingleTravelView(APIView):
         return Response(
             {"error": "error", "is_part": False}, status=status.HTTP_404_NOT_FOUND
         )
+
 
 
 class TravelGroupView(APIView):
@@ -698,7 +698,7 @@ class AddTravelUserView(APIView):
                     {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
                 )
 
-            if travel.status == "Private":  
+            if travel.status == "Private":
                 key=request.data.get('key')
                 if str(travel.key).strip() != str(key).strip():
                     return Response("your key is not correct",status=status.HTTP_403_FORBIDDEN)
@@ -808,7 +808,7 @@ class RequestView(APIView):
             tg.users.add(user_add)
             tg.save()
 
-           
+
             TravelUserRateMoney.objects.create(travel=travel, user_rated=user_add)
             TravelUserRateSleep.objects.create(travel=travel, user_rated=user_add)
 
@@ -831,6 +831,11 @@ class RequestView(APIView):
             return Response(
                 {"detail": "User added to the group."}, status=status.HTTP_200_OK
             )
+        request_record = Requests.objects.filter(
+            user_request=user_add, travel__name=travel_name
+        ).first()
+        if request_record:
+            request_record.delete()
 
         return Response(
             {"detail": "You have not accepted the request."}, status=status.HTTP_200_OK
