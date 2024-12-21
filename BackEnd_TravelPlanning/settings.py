@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     "profilepage",
     "chat",
     "channels",
-    "channels_redis",
+    "channels_redis",'adrf',
 ]
 
 ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
