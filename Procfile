@@ -1,1 +1,1 @@
-web: daphne BackEnd_TravelPlanning.asgi:application --bind 0.0.0.0 --port $PORT
+web: python manage.py runserver 0.0.0.0:8000
