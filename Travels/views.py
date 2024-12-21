@@ -574,8 +574,7 @@ class UserSMRateView(APIView):
 
         if not (
             group.users.filter(user_id=user.user_id).exists()
-            and group.users.filter(user_id=user_rated.user_id).exists()
-        ):
+            and group.users.filter(user_id=user_rated.user_id).exists())and (travel.admin!=group.travel_is.admin):
             return Response(
                 {"detail": "Both users must be in the same group."},
                 status=status.HTTP_403_FORBIDDEN,
