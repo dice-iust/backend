@@ -3,104 +3,159 @@ import jwt
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from channels.db import database_sync_to_async
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-from django.conf import settings
+from asgiref.sync import sync_to_async
+from ably import AblyRest
+import logging
+from channels.layers import get_channel_layer
 
+logger = logging.getLogger(__name__)
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
-        self.room_group_name = f"travel_{self.travel_name}"
+        try:
+            # Initialize travel and group name
+            self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
+            self.room_group_name = f"travel_{self.travel_name}"
 
-        headers = dict(self.scope.get("headers", []))
-        auth_header = headers.get(b"Authorization", None)
-        if not auth_header:
+            # Initialize Ably
+            self.ably = AblyRest(settings.ABLY_API_KEY)
+            self.channel = self.ably.channels.get(self.room_group_name)
+            logger.info(f"Connected to Ably channel: {self.room_group_name}")
+
+            # Extract token from headers
+            headers = dict(self.scope.get("headers", []))
+            auth_header = headers.get(b"authorization")
+            if not auth_header:
+                logger.warning("Missing Authorization header.")
+                await self.close(code=4003)
+                return
+
+            token = auth_header.decode("utf-8").split(" ")[-1]
+            self.user = await self.get_user_from_token(token)
+
+            # Validate user
+            if not self.user:
+                logger.warning("Invalid or expired token.")
+                await self.close(code=4001)
+                return
+
+            # Validate travel and group
+            travel, travellers_group = await self.get_travel_and_group(
+                self.travel_name, self.user
+            )
+            if not travel or not travellers_group:
+                logger.warning("Travel or travellers group not found.")
+                await self.close(code=4002)
+                return
+
+            self.travellers_group = travellers_group
+
+            # Accept the WebSocket connection
+            await self.accept()
+
+        except Exception as e:
+            logger.error(f"Error in connect: {e}")
             await self.close()
-            return
-
-        token = auth_header.decode("utf-8").split(" ")[-1] 
-        user = await self.get_user_from_token(token)
-
-        if not user:
-            await self.close()
-            return
-
-
-        travel, travellers_group = await self.get_travel_and_group(
-            self.travel_name, user
-        )
-        if not travel or not travellers_group:
-            await self.close()
-            return
-
-        self.user = user
-        self.travellers_group = travellers_group
-
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        try:
+            logger.info(
+                f"{self.user.user_name} disconnected from {self.room_group_name}."
+            )
+        except Exception as e:
+            logger.error(f"Error in disconnect: {e}")
 
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
+        try:
+            text_data_json = json.loads(text_data)
+            message = text_data_json.get("message")
 
-        await self.save_message(message)
+            if not message:
+                logger.warning("Empty message received.")
+                return
 
+            # Save the message to the database
+            await self.save_message(message)
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "chat_message",
-                "message": message,
-                "user_name": self.user.user_name,
-            },
-        )
+            # Publish the message to the Ably channel
+            self.channel.publish(
+                "chat", {"message": message, "user_name": self.user.user_name}
+            )
+            logger.info(f"Message published to Ably: {message}")
 
-    async def chat_message(self, event):
-        message = event["message"]
-        user_name = event["user_name"]
+            # Broadcast the message to WebSocket clients
+            await self.send(
+                text_data=json.dumps(
+                    {"message": message, "user_name": self.user.user_name}
+                )
+            )
 
-    
-        await self.send(
-            text_data=json.dumps({"message": message, "user_name": user_name})
-        )
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON received.")
+        except Exception as e:
+            logger.error(f"Error in receive: {e}")
 
-    @database_sync_to_async
+    @sync_to_async
     def save_message(self, message):
+        from .models import ChatMessage
 
-        from Travels.models import ChatMessage
+        if not self.user or not self.travellers_group:
+            logger.warning("User or travellers group is not set.")
+            return
 
-        ChatMessage.objects.create(
-            sender=self.user,
-            travellers_group=self.travellers_group,
-            message=message,
-            travel_name=self.travel_name,
-        )
+        try:
+            ChatMessage.objects.create(
+                sender=self.user,
+                travellers_group=self.travellers_group,
+                message=message,
+                travel_name=self.travel_name,
+            )
+            logger.info(f"Message saved to database: {message}")
+        except Exception as e:
+            logger.error(f"Error saving message: {e}")
 
-    @database_sync_to_async
+    @sync_to_async
     def get_user_from_token(self, token):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             user_id = payload.get("user_id")
-            return settings.AUTH_USER_MODEL.objects.filter(user_id=user_id).first()
+            user = get_user_model().objects.filter(user_id=user_id).first()
+            logger.info(f"User retrieved: {user.user_name if user else 'None'}")
+            return user
         except ExpiredSignatureError:
-            return None 
+            logger.warning("Token has expired.")
+            return None
         except InvalidTokenError:
-            return None 
+            logger.warning("Invalid token.")
+            return None
+        except Exception as e:
+            logger.error(f"Error decoding token: {e}")
+            return None
 
-    @database_sync_to_async
+    @sync_to_async
     def get_travel_and_group(self, travel_name, user):
         from Travels.models import Travel, TravellersGroup
 
         try:
             travel = Travel.objects.get(name=travel_name)
-            travellers_group = TravellersGroup.objects.get(travel_is=travel)
-            if user in travellers_group.users.all():
+            travellers_group = TravellersGroup.objects.prefetch_related("users").get(
+                travel_is=travel
+            )
+            if user in travellers_group.users.all() or user == travel.admin:
+                logger.info(f"Travel and travellers group found for {travel_name}.")
                 return travel, travellers_group
+            logger.warning(
+                f"User {user.user_id} is not in group for travel {travel_name}."
+            )
             return None, None
-        except (Travel.DoesNotExist, TravellersGroup.DoesNotExist):
+        except Travel.DoesNotExist:
+            logger.warning(f"Travel {travel_name} does not exist.")
+            return None, None
+        except TravellersGroup.DoesNotExist:
+            logger.warning(f"Travellers group for travel {travel_name} does not exist.")
+            return None, None
+        except Exception as e:
+            logger.error(f"Error in get_travel_and_group: {e}")
             return None, None

@@ -3,7 +3,7 @@ from .views import *
 
 urlpatterns = [
     path("travels/", TravelViewPopular.as_view()),
-    path("travels/travelname/", SingleTravelView.as_view()),
+    path("travels/single/", SingleTravelView.as_view()),
     path("travels/filter/", AllTravels.as_view()),
     path("travels/spring/", TravelViewSpring.as_view()),
     path("travels/summer/", TravelViewSummer.as_view()),
@@ -20,5 +20,5 @@ urlpatterns = [
     path("travels/adduser/", AddTravelUserView.as_view()),
     path("travels/rate/user/", UserSMRateView.as_view()),
     path("rate/", UserFullyRateView.as_view()),
-    path("requests/",RequestView.as_view()),
+    path("requests/", RequestView.as_view()),
 ]
