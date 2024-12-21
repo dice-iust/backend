@@ -5,7 +5,8 @@ from .models import (
     EmailAddress,
     TravellersGroup,
     TravelUserRateMoney,
-    TravelUserRateSleep,Requests
+    TravelUserRateSleep,
+    Requests,
 )
 
 # from editprofile.models import UserProfile
@@ -75,7 +76,7 @@ class TravelSerializer(serializers.ModelSerializer):
             "mode",
             "rate",
             "status",
-            "empty_travellers", #they are in trip
+            "empty_travellers",  # they are in trip
         ]
 
     def get_image(self, obj):
@@ -207,8 +208,9 @@ class UserMiddleRateSerializer(serializers.Serializer):
     rate_sleep = serializers.IntegerField(required=False)
     rate_money = serializers.IntegerField(required=False)
 
+
 class RequestSerializer(serializers.ModelSerializer):
-    user_request = UserSerializer()
+    user_request = PhotoSerializer()
     class Meta:
         model = Requests
-        fields =['travel_name',"user"]
+        fields = ["travel_name", "user_request"]
