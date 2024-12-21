@@ -211,7 +211,6 @@ class UserMiddleRateSerializer(serializers.Serializer):
 
 class RequestSerializer(serializers.ModelSerializer):
     user_request = PhotoSerializer()
-
     class Meta:
         model = Requests
         fields = ["travel_name", "user_request"]
