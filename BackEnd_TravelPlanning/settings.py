@@ -33,36 +33,25 @@ INSTALLED_APPS = [
 ]
 
 ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
-
 # REDIS_URL = "rediss://AWK9AAIjcDE4NDE2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA@nearby-heron-25277.upstash.io:6379/0"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+       
+                ("redis://:{password}@{host}:{port}".format(
+                    password='xSBqGWNBrsbOHFWuqwwbFcTR',  
+                    host='elbrus.liara.cloud',  
+                    port=33709,  
+                )),
+            ],
+        },
+    },
+}
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [REDIS_URL],
-#         },
-#     },
-# }
 
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": REDIS_URL,
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         },
-#     }
-# }
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels.layers.InMemoryChannelLayer",
-#     },
-# }
-# PUSHER_APP_ID = "1912577"
-# PUSHER_KEY = "2fd04b6bb46ded07a8c6"
-# PUSHER_SECRET = "b13bdb7c9845314e71a9"
-# PUSHER_CLUSTER = "ap3"
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -108,20 +97,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "strange_lehmann",
         "USER": "root",
         "PASSWORD": "AMUtgKRh1z7vrrdhpPBNFZCw",
-        "HOST": "databasetriptide",
-        "PORT": "3306",
+        "HOST": "elbrus.liara.cloud",
+        "PORT": "31265",
         "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
 }
@@ -153,7 +136,7 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ORIGIN_ALLOW_ALL = True
-CSRF_COOKIE_SECURE = False  # Ensure this is set if you're using HTTP rather than HTTPS
+CSRF_COOKIE_SECURE = False  
 CSRF_COOKIE_HTTPONLY = False
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
