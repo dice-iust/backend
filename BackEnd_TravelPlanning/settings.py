@@ -117,10 +117,10 @@ WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "triptide1",
+        "NAME": "strange_lehmann",
         "USER": "root",
-        "PASSWORD": "15911591A@th",
-        "HOST": "localhost",
+        "PASSWORD": "AMUtgKRh1z7vrrdhpPBNFZCw",
+        "HOST": "databasetriptide",
         "PORT": "3306",
         "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
