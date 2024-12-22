@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-^t2!686ei!1!ow+)ms-5bdx1m*h@@!noyddg_i!ond#d+!m2l0"
 
 DEBUG = True
-ALLOWED_HOSTS = ['triptide.pythonanywhere.com', '127.0.0.1','localhost']
+ALLOWED_HOSTS = ['triptide.pythonanywhere.com', '127.0.0.1','localhost','triptide.liara.run']
 
 ABLY_API_KEY = "w9hDjQ.bDJwDg:nV7gxEThhWT4clJqHv9K3syB3SQCDrkcgaoChiWmRQY"
 
@@ -108,13 +108,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "triptide1",
+        "USER": "root",
+        "PASSWORD": "15911591A@th",
+        "HOST": "localhost",
+        "PORT": "3306",
+        "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
 }
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -136,7 +146,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
-
+STATIC_ROOT=BASE_DIR / 'staticfiles'
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
