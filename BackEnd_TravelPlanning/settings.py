@@ -33,7 +33,7 @@ INSTALLED_APPS = [
 ]
 
 ASGI_APPLICATION = "BackEnd_TravelPlanning.asgi.application"
-WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
+# WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
 
 CHANNEL_LAYERS = {
     "default": {
