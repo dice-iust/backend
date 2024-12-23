@@ -32,8 +32,9 @@ INSTALLED_APPS = [
     "channels_redis",'adrf',
 ]
 
-ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
-# REDIS_URL = "rediss://AWK9AAIjcDE4NDE2YzY0Mjc2Yjg5Nzg4NzUxNjIwZDdiMXAxMA@nearby-heron-25277.upstash.io:6379/0"
+ASGI_APPLICATION = "BackEnd_TravelPlanning.asgi.application"
+# WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -49,7 +50,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
-ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -170,3 +171,5 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+STREAMING_HTTP_RESPONSE_TIMEOUT = 500
