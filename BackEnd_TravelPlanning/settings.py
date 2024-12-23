@@ -38,14 +38,15 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [
+            "hosts":["redis://:xSBqGWNBrsbOHFWuqwwbFcTR@elbrus.liara.cloud:33709/0",]
+            #  [
        
-                ("redis://:{password}@{host}:{port}".format(
-                    password='xSBqGWNBrsbOHFWuqwwbFcTR',  
-                    host='elbrus.liara.cloud',  
-                    port=33709,  
-                )),
-            ],
+            #     ("redis://:{password}@{host}:{port}".format(
+            #         password='xSBqGWNBrsbOHFWuqwwbFcTR',  
+            #         host='elbrus.liara.cloud',  
+            #         port=33709,  
+            #     )),
+            # ],
         },
     },
 }
