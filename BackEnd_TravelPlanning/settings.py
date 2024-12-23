@@ -32,7 +32,8 @@ INSTALLED_APPS = [
     "channels_redis",'adrf',
 ]
 
-ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
+ASGI_APPLICATION = "BackEnd_TravelPlanning.asgi.application"
+WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
 
 CHANNEL_LAYERS = {
     "default": {
