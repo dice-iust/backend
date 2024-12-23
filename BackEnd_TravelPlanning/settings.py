@@ -49,7 +49,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
+ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
