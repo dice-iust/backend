@@ -26,7 +26,7 @@ urlpatterns = [
     path("editprofile/", include("editprofile.urls")),
     path("", include("Landing.urls")),
     path("planner/", include("planner.urls")),
-    path("", include("profilepage.urls")),path("",include("chat.urls"),)
+    path("", include("profilepage.urls")),path("",include("chat.urls")),
 ]
 
 if settings.DEBUG:
