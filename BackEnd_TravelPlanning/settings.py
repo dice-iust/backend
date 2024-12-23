@@ -100,7 +100,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "BackEnd_TravelPlanning.wsgi.application"
 
 DATABASES = {
     "default": {

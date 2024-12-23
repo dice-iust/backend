@@ -23,3 +23,4 @@ application = ProtocolTypeRouter(
         ),
     }
 )
+ASGI_APPLICATION = 'BackEnd_TravelPlanning.asgi.application'
