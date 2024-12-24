@@ -1,0 +1,13 @@
+{
+    "app": "triptide",
+    "port": 80,
+    "build": {
+        "location": "iran"
+    },
+    "disks": [
+        {
+            "name": "triptidedisk",
+            "mountTo": "media"
+        }
+    ]
+}
