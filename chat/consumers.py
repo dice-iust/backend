@@ -182,12 +182,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             all_messages = []
             for msg in messages:
                 # Use a separate async call to get the profile picture URL
+                profile_url = None
+                if msg.sender.profilePicture:
+                    domain = "https://triptide.liara.run"  # Replace with your domain
+                    profile_url = f"{domain}{msg.sender.profilePicture.url}"  # Build full URL
 
-                all_messages.append({
-                    "user_name": msg.sender.user_name,
-                    "message": msg.message,
-
-                })
+                all_messages.append(
+                    {
+                        "user_name": msg.sender.user_name,
+                        "message": msg.message,
+                        "profile": profile_url,
+                    }
+                )
             return all_messages
         except Exception as e:
             logger.error(f"Error retrieving all messages: {e}")
