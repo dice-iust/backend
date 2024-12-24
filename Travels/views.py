@@ -349,7 +349,6 @@ class SingleTravelView(APIView):
         )
 
 
-
 class TravelGroupView(APIView):
     serializer_class = TravelGroupSerializer
 
@@ -527,7 +526,39 @@ class TravelUserRateView(APIView):
 class UserSMRateView(APIView):
     authentication_classes = [TokenAuthentication]
     serializer_class = UserMiddleRateSerializer
+    def get(self,request):
+        today = datetime.now().date()
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Authorization token not provided.")
 
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        if request.data.get("travel_name"):
+            name=request.data.get("travel_name") 
+            travel=Travel.objects.filter(name=name).first()
+            if not travel:
+                return Response(
+                {"status":False}, status=status.HTTP_404_NOT_FOUND
+            )
+            tg=TravellersGroup.objects.filter(travel_is=travel).first()
+            if not (
+            tg.users.filter(user_id=user.user_id).exists()) and travel.admin!=user:
+                return Response({"status":False},status=status.HTTP_403_FORBIDDEN)
+            if travel.end_date < today:
+                return Response({"status":True},status=status.HTTP_404_NOT_FOUND)
+        return Response({"status": False}, status=status.HTTP_404_NOT_FOUND)
     def post(self, request):
 
         user_token = request.headers.get("Authorization")
