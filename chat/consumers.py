@@ -48,7 +48,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
             await self.accept()
 
-        
             last_messages = await self.get_all_messages()
             await self.send(text_data=json.dumps({"last_messages": last_messages}))
 
@@ -86,7 +85,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {
                     "type": "chat_message",
-                    **saved_message, 
+                    **saved_message,
                 },
             )
         except json.JSONDecodeError:
@@ -96,13 +95,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         try:
-       
             await self.send(
                 text_data=json.dumps(
                     {
                         "message": event["message"],
                         "user_name": event["user_name"],
                         "profile": event["profile"],
+                        "time": event["time"],
                     }
                 )
             )
@@ -118,7 +117,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return None
 
         try:
-         
+            # Save the message with the current timestamp
             chat_message = ChatMessage.objects.create(
                 sender=self.user,
                 travellers_group=self.travellers_group,
@@ -126,7 +125,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 travel_name=self.travel_name,
             )
 
-     
+            # Construct the profile URL
             domain = "https://triptide.liara.run"
             profile_url = (
                 f"{domain}{self.user.profilePicture.url}"
@@ -134,11 +133,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 else None
             )
 
+            # Format the timestamp
+            timestamp = chat_message.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
             return {
                 "message": chat_message.message,
                 "user_name": self.user.user_name,
                 "profile": profile_url,
+                "time": timestamp,  # Adding timestamp here
             }
+
         except Exception as e:
             logger.error(f"Error saving message: {e}")
             return None
@@ -187,12 +191,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         from .models import ChatMessage
 
         try:
-           
             messages = ChatMessage.objects.filter(
                 travellers_group=self.travellers_group, travel_name=self.travel_name
             ).order_by("timestamp")
 
-         
             domain = "https://triptide.liara.run"
             return [
                 {
@@ -203,6 +205,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         if msg.sender.profilePicture
                         else None
                     ),
+                    "time": msg.timestamp.strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),  # Formatting timestamp
                 }
                 for msg in messages
             ]
