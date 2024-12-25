@@ -23,7 +23,7 @@ from .serializers import (
     TravelUserRateMoneySerializer,
     TravelUserRateSleepSerializer,
     UserMiddleRateSerializer,
-    RequestSerializer,MyRatedOtherMoneySerializer,MyRatedOtherSleepSerializer
+    RequestSerializer,
 )
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -870,6 +870,7 @@ class RequestView(APIView):
         return Response(
             {"detail": "You have not accepted the request."}, status=status.HTTP_200_OK
         )
+
     def delete(self, request):
         cutoff_date = now() - timedelta(days=10)
         deleted_count, _ = Requests.objects.filter(created_at__lt=cutoff_date).delete()
@@ -878,84 +879,3 @@ class RequestView(APIView):
             {"message": f"Deleted {deleted_count} old request(s) successfully."},
             status=status.HTTP_200_OK,
         )
-class RateByMeView(APIView):
-    def get(self,request):
-        today = datetime.now().date()
-        user_token = request.headers.get("Authorization")
-        if not user_token:
-            raise AuthenticationFailed("Authorization token not provided.")
-
-        try:
-            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed("Token has expired.")
-        except jwt.InvalidTokenError:
-            raise AuthenticationFailed("Invalid token.")
-
-        user_model = get_user_model()
-        user = user_model.objects.filter(user_id=payload["user_id"]).first()
-        if not user:
-            return Response(
-                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-        travel_name=request.data.get("travel_name")
-        if not travel_name:
-            return Response("travelname is required",status=status.HTTP_400_BAD_REQUEST)
-        travel=Travel.objects.filter(name=travel_name).first()
-        if not travel:
-            return Response("travel does not exit",status=status.HTTP_404_NOT_FOUND)
-        user_name_rated=request.data.get("user_name")
-        if not user_name_rated:
-            return Response("username is required",status=status.HTTP_400_BAD_REQUEST)
-        user_rated = user_model.objects.filter(user_name=user_name_rated).first()
-        if not user_rated:
-            return Response(
-                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-        money_rates=TravelUserRateMoney.objects.filter(travel=travel,rated_by=user,user_rated=user_rated).first()
-        sleep_rates=TravelUserRateSleep.objects.filter(travel=travel,rated_by=user,user_rated=user_rated).first()
-        monyes=MyRatedOtherMoneySerializer(money_rates).data
-        sleeps=MyRatedOtherSleepSerializer(sleep_rates).data
-        return Response({'money':monyes,'sleep':sleeps},status=status.HTTP_200_OK)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
