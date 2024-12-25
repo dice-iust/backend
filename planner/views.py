@@ -124,7 +124,6 @@ class CreateExpenseAPIView(APIView):
             )
 
         try:
-            # Fetch the travel pay (Travel object) and related travel group (TravellersGroup)
             travel_pay = Travel.objects.filter(name=travel_name).first()
             if not travel_pay:
                 return Response(
@@ -147,7 +146,7 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # Check if user is part of the travel group or is the admin
+        
         if user not in travel_group.users.all() and user != travel_pay.admin:
             return Response(
                 {
@@ -159,7 +158,6 @@ class CreateExpenseAPIView(APIView):
 
         participants_in_travel = travel_group.users.all()
 
-        # Ensure admin is included as a participant
         if travel_pay.admin not in participants_in_travel:
             participants_in_travel = participants_in_travel | User.objects.filter(
                 user_id=travel_pay.admin.user_id
@@ -209,7 +207,6 @@ class CreateExpenseAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Process and save the expense
         serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
@@ -217,7 +214,7 @@ class CreateExpenseAPIView(APIView):
             expense = serializer.save(travel=travel_group)
             expense.participants.set(participants)
 
-            # Handle receipt image if provided
+        
             if "receipt_image" in request.data:
                 expense.receipt_image = request.data.get("receipt_image")
                 expense.save()
@@ -300,7 +297,6 @@ class DebtsAPIView(APIView):
                         expense.payer.user_name
                     ] -= share_per_user
 
-        # Prepare the response data
         user_debts_to_others = {
             key: value for key, value in debts[user.user_name].items() if value < 0
         }
