@@ -102,28 +102,19 @@ class GetExpenseSerializer(serializers.ModelSerializer):
         ]
 
     def get_category_icon(self, obj):
-        # Default to "Other" if no category is specified
         if not obj.category:
             category_icon = "Other.jpg"
         else:
-            category_icon = obj.category_icon or "Other.jpg"  # If category_icon is not set, fallback to "Other.jpg"
-
-        # Construct the absolute URL for the icon
-        icon_path = f"/media/icons/{category_icon}"
-
-        # Get the request object to build an absolute URL
+            category_icon = obj.category_icon or "/media/icons/Other.jpg"
+        icon_path = f"{category_icon}"
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(icon_path)
-
-        # Fallback URL for when no request context is available
         return f"http://triptide.pythonanywhere.com{icon_path}"
     def get_image(self, obj):
         if obj.receipt_image and hasattr(obj.receipt_image, "url"):
             return self.context["request"].build_absolute_uri(obj.receipt_image.url)
         return None
-
-
 
 
 class PastPaymentSerializer(serializers.ModelSerializer):

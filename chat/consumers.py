@@ -126,9 +126,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
             # Construct the profile URL
-            domain = "https://triptide.liara.run"
             profile_url = (
-                f"{domain}{self.user.profilePicture.url}"
+                f"https://triptide.liara.run{self.user.profilePicture.url}"
                 if self.user.profilePicture
                 else None
             )
@@ -201,7 +200,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "user_name": msg.sender.user_name,
                     "message": msg.message,
                     "profile": (
-                        f"{domain}{msg.sender.profilePicture.url}"
+                        f"https://triptide.liara.run{msg.sender.profilePicture.url}"
                         if msg.sender.profilePicture
                         else None
                     ),
