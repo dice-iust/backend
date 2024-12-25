@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
@@ -47,13 +48,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
             await self.accept()
 
-            # Send all the last messages when the user connects
+        
             last_messages = await self.get_all_messages()
-            await self.send(
-                text_data=json.dumps({
-                    "last_messages": last_messages
-                })
-            )
+            await self.send(text_data=json.dumps({"last_messages": last_messages}))
 
         except Exception as e:
             logger.error(f"Error in connect: {e}")
@@ -62,7 +59,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         try:
             if self.channel_layer:
-                await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+                await self.channel_layer.group_discard(
+                    self.room_group_name, self.channel_name
+                )
             else:
                 logger.warning("Channel layer is not available during disconnect.")
         except Exception as e:
@@ -77,13 +76,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 logger.warning("Empty message received.")
                 return
 
-            await self.save_message(message)
+            saved_message = await self.save_message(message)
+
+            if not saved_message:
+                logger.error("Failed to save message.")
+                return
 
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "chat_message",
-                    "message": message,
+                    **saved_message, 
                 },
             )
         except json.JSONDecodeError:
@@ -93,15 +96,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         try:
-            message = event["message"]
-            profile_picture = await self.get_full_profile_picture_url()
-
+       
             await self.send(
-                text_data=json.dumps({
-                    "message": message,
-                    "user_name": self.user.user_name,
-                    "profile": profile_picture
-                })
+                text_data=json.dumps(
+                    {
+                        "message": event["message"],
+                        "user_name": event["user_name"],
+                        "profile": event["profile"],
+                    }
+                )
             )
         except Exception as e:
             logger.error(f"Error in chat_message: {e}")
@@ -112,17 +115,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if not self.user or not self.travellers_group:
             logger.warning("User or travellers group is not set.")
-            return
+            return None
 
         try:
-            ChatMessage.objects.create(
+         
+            chat_message = ChatMessage.objects.create(
                 sender=self.user,
                 travellers_group=self.travellers_group,
                 message=message,
                 travel_name=self.travel_name,
             )
+
+     
+            domain = "https://triptide.liara.run"
+            profile_url = (
+                f"{domain}{self.user.profilePicture.url}"
+                if self.user.profilePicture
+                else None
+            )
+
+            return {
+                "message": chat_message.message,
+                "user_name": self.user.user_name,
+                "profile": profile_url,
+            }
         except Exception as e:
             logger.error(f"Error saving message: {e}")
+            return None
 
     @database_sync_to_async
     def get_user_from_token(self, token):
@@ -164,40 +183,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return None, None
 
     @database_sync_to_async
-    def get_full_profile_picture_url(self):
-        if self.user.profilePicture:
-            domain = "https://triptide.liara.run"  # Replace with your domain
-            media_url = self.user.profilePicture.url  # relative URL
-            full_url = f"{domain}{media_url}"
-            return full_url
-        return None
-
-    @database_sync_to_async
     def get_all_messages(self):
         from .models import ChatMessage
+
         try:
-            # Fetch all messages for the travel group ordered by creation date
+           
             messages = ChatMessage.objects.filter(
-                travellers_group=self.travellers_group,
-                travel_name=self.travel_name
-            ).order_by('timestamp')  # Adjust based on your sorting needs
+                travellers_group=self.travellers_group, travel_name=self.travel_name
+            ).order_by("timestamp")
 
-            all_messages = []
-            for msg in messages:
-                # Use a separate async call to get the profile picture URL
-                profile_url = None
-                if msg.sender.profilePicture:
-                    domain = "https://triptide.liara.run"  # Replace with your domain
-                    profile_url = f"{domain}{msg.sender.profilePicture.url}"  # Build full URL
-
-                all_messages.append(
-                    {
-                        "user_name": msg.sender.user_name,
-                        "message": msg.message,
-                        "profile": profile_url,
-                    }
-                )
-            return all_messages
+         
+            domain = "https://triptide.liara.run"
+            return [
+                {
+                    "user_name": msg.sender.user_name,
+                    "message": msg.message,
+                    "profile": (
+                        f"{domain}{msg.sender.profilePicture.url}"
+                        if msg.sender.profilePicture
+                        else None
+                    ),
+                }
+                for msg in messages
+            ]
         except Exception as e:
             logger.error(f"Error retrieving all messages: {e}")
             return []
