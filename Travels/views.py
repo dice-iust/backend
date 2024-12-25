@@ -23,7 +23,7 @@ from .serializers import (
     TravelUserRateMoneySerializer,
     TravelUserRateSleepSerializer,
     UserMiddleRateSerializer,
-    RequestSerializer,
+    RequestSerializer,MyRatedOtherMoneySerializer,MyRatedOtherSleepSerializer
 )
 from datetime import datetime, timedelta
 from django.db.models import F, ExpressionWrapper, DurationField, Q
@@ -879,3 +879,74 @@ class RequestView(APIView):
             {"message": f"Deleted {deleted_count} old request(s) successfully."},
             status=status.HTTP_200_OK,
         )
+class RateByMeView(APIView):
+    def get(self,request):
+        today = datetime.now().date()
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Authorization token not provided.")
+
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user_model = get_user_model()
+        user = user_model.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        travel_name=request.data.get("travel_name")
+        travel=Travel.objects.filter(name=travel_name).first()
+        if not travel:
+            return Response("travel does not exit",status=status.HTTP_404_NOT_FOUND)
+        money_rates=TravelUserRateMoney.objects.filter(travel=travel,rated_by=user)
+        sleep_rates=TravelUserRateSleep.objects.filter(travel=travel,rated_by=user)
+        monyes=MyRatedOtherMoneySerializer(money_rates,many=True).data
+        sleeps=MyRatedOtherSleepSerializer(sleep_rates,many=True).data
+        return Response({'money':monyes,'sleep':sleeps},status=status.HTTP_200_OK)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

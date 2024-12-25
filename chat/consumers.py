@@ -173,15 +173,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_all_messages(self):
         from .models import ChatMessage
         try:
-            # Fetch all messages for the travel group ordered by creation date
+
             messages = ChatMessage.objects.filter(
                 travellers_group=self.travellers_group,
                 travel_name=self.travel_name
-            ).order_by('timestamp')  # Adjust based on your sorting needs
+            ).order_by('timestamp')  
 
             all_messages = []
             for msg in messages:
-                # Use a separate async call to get the profile picture URL
+          
 
                 all_messages.append({
                     "user_name": msg.sender.user_name,

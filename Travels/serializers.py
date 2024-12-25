@@ -214,3 +214,13 @@ class RequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requests
         fields = ["travel_name", "user_request"]
+class MyRatedOtherSleepSerializer(serializers.ModelSerializer):
+    user_rated=UserSerializer()   
+    class Meta:
+        model =TravelUserRateSleep
+        fields = ['user_rated','rate']
+class MyRatedOtherMoneySerializer(serializers.ModelSerializer):
+    user_rated=UserSerializer()   
+    class Meta:
+        model = TravelUserRateMoney
+        fields = ['user_rated','rate']
