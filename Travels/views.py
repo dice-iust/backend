@@ -238,6 +238,12 @@ class EmailView(APIView):
 
         if email_serializer.is_valid():
             email_serializer.save()
+            send_mail(
+            subject="Request to join travel",
+            message=f"hello"
+            from_email="triiptide@gmail.com",
+            recipient_list=[email_serializer['email']],
+        )
             return Response(data=email_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
