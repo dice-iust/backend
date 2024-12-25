@@ -26,7 +26,7 @@ class Expense(models.Model):
         "Healthcare": "/media/icons/Healthcare.jpg",
         "Insurance": "/media/icons/Insurance.jpg",
         "Rent & Charges": "/media/icons/Rent.jpg",
-        "Restaurants & Bars": "/media/icons/Restaurant.jpg",
+        "Restaurant & Bars": "/media/icons/Restaurant.jpg",
         "Shopping": "/media/icons/Shopping.jpg",
         "Transport": "/media/icons/Transport.jpg",
         "Other": "/media/icons/Other.jpg",
@@ -45,7 +45,7 @@ class Expense(models.Model):
     )
     participants = models.ManyToManyField(User, related_name="participant_expenses")
     category = models.CharField(
-        max_length=50, choices=CATEGORY_CHOICES, default="Other", null=True
+        max_length=50, choices=CATEGORY_CHOICES, default="Other"
     )
     created_at = models.DateField(auto_now_add=True)
     title = models.CharField(max_length=100, default="payment", null=True)
