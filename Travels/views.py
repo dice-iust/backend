@@ -870,7 +870,6 @@ class RequestView(APIView):
         return Response(
             {"detail": "You have not accepted the request."}, status=status.HTTP_200_OK
         )
-
     def delete(self, request):
         cutoff_date = now() - timedelta(days=10)
         deleted_count, _ = Requests.objects.filter(created_at__lt=cutoff_date).delete()
@@ -900,13 +899,23 @@ class RateByMeView(APIView):
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
         travel_name=request.data.get("travel_name")
+        if not travel_name:
+            return Response("travelname is required",status=status.HTTP_400_BAD_REQUEST)
         travel=Travel.objects.filter(name=travel_name).first()
         if not travel:
             return Response("travel does not exit",status=status.HTTP_404_NOT_FOUND)
-        money_rates=TravelUserRateMoney.objects.filter(travel=travel,rated_by=user)
-        sleep_rates=TravelUserRateSleep.objects.filter(travel=travel,rated_by=user)
-        monyes=MyRatedOtherMoneySerializer(money_rates,many=True).data
-        sleeps=MyRatedOtherSleepSerializer(sleep_rates,many=True).data
+        user_name_rated=request.data.get("user_name")
+        if not user_name_rated:
+            return Response("username is required",status=status.HTTP_400_BAD_REQUEST)
+        user_rated = user_model.objects.filter(user_name=user_name_rated).first()
+        if not user_rated:
+            return Response(
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        money_rates=TravelUserRateMoney.objects.filter(travel=travel,rated_by=user,user_rated=user_rated).first()
+        sleep_rates=TravelUserRateSleep.objects.filter(travel=travel,rated_by=user,user_rated=user_rated).first()
+        monyes=MyRatedOtherMoneySerializer(money_rates).data
+        sleeps=MyRatedOtherSleepSerializer(sleep_rates).data
         return Response({'money':monyes,'sleep':sleeps},status=status.HTTP_200_OK)
     
     
