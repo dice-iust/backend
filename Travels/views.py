@@ -238,6 +238,12 @@ class EmailView(APIView):
 
         if email_serializer.is_valid():
             email_serializer.save()
+            send_mail(
+            subject="Request to join travel",
+            message=f"hello{email}",
+            from_email="triiptide@gmail.com",
+            recipient_list=[email_serializer['email']],
+        )
             return Response(data=email_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -898,13 +904,13 @@ class RateByMeView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        travel_name=request.data.get("travel_name")
+        travel_name=request.query_params.get("travel_name")
         if not travel_name:
             return Response("travelname is required",status=status.HTTP_400_BAD_REQUEST)
         travel=Travel.objects.filter(name=travel_name).first()
         if not travel:
             return Response("travel does not exit",status=status.HTTP_404_NOT_FOUND)
-        user_name_rated=request.data.get("user_name")
+        user_name_rated=request.query_params.get("user_name")
         if not user_name_rated:
             return Response("username is required",status=status.HTTP_400_BAD_REQUEST)
         user_rated = user_model.objects.filter(user_name=user_name_rated).first()
