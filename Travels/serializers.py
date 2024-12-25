@@ -211,6 +211,19 @@ class UserMiddleRateSerializer(serializers.Serializer):
 
 class RequestSerializer(serializers.ModelSerializer):
     user_request = PhotoSerializer()
+
     class Meta:
         model = Requests
         fields = ["travel_name", "user_request"]
+
+
+class MyRatedOtherSleepSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TravelUserRateSleep
+        fields = ["rate"]
+
+
+class MyRatedOtherMoneySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TravelUserRateMoney
+        fields = ["rate"]
