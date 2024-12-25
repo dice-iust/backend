@@ -13,7 +13,7 @@ class Expense(models.Model):
         ("Healthcare", "Healthcare"),
         ("Insurance", "Insurance"),
         ("Rent & Charges", "Rent & Charges"),
-        ("Restaurants & Bars", "Restaurants & Bars"),
+        ("Restaurant & Bars", "Restaurants & Bars"),
         ("Shopping", "Shopping"),
         ("Transport", "Transport"),
         ("Other", "Other"),
