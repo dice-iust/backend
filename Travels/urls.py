@@ -20,5 +20,5 @@ urlpatterns = [
     path("travels/adduser/", AddTravelUserView.as_view()),
     path("travels/rate/user/", UserSMRateView.as_view()),
     path("rate/", UserFullyRateView.as_view()),
-    path("requests/", RequestView.as_view()),
+    path("requests/", RequestView.as_view()),path('rate/byuser/',RateByMeView.as_view()),
 ]
