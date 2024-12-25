@@ -15,14 +15,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
             self.room_group_name = f"travel_{self.travel_name}"
 
-            headers = dict(self.scope.get("headers", []))
-            auth_header = headers.get(b"authorization")
-            if not auth_header:
-                logger.warning("Missing Authorization header.")
+            query_string = self.scope.get("query_string", b"").decode("utf-8")
+            token = None
+
+            if query_string:
+                query_params = dict(qc.split("=") for qc in query_string.split("&"))
+                token = query_params.get("token")
+
+            if not token:
+                logger.warning("Missing token in query parameters.")
                 await self.close(code=4003)
                 return
-
-            token = auth_header.decode("utf-8").split(" ")[-1]
             user = await self.get_user_from_token(token)
 
             if not user:
@@ -182,12 +185,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             all_messages = []
             for msg in messages:
                 # Use a separate async call to get the profile picture URL
+                profile_url = None
+                if msg.sender.profilePicture:
+                    domain = "https://triptide.liara.run"  # Replace with your domain
+                    profile_url = f"{domain}{msg.sender.profilePicture.url}"  # Build full URL
 
-                all_messages.append({
-                    "user_name": msg.sender.user_name,
-                    "message": msg.message,
-
-                })
+                all_messages.append(
+                    {
+                        "user_name": msg.sender.user_name,
+                        "message": msg.message,
+                        "profile": profile_url,
+                    }
+                )
             return all_messages
         except Exception as e:
             logger.error(f"Error retrieving all messages: {e}")
