@@ -17,7 +17,7 @@ class ChatMessage(models.Model):
         TravellersGroup, on_delete=models.CASCADE, related_name="messages"
     )
     message = models.TextField()
-    timestamp = models.DateTimeField(default=iran_time)
+    timestamp = models.DateTimeField(null=True, blank=True)
     travel_name = models.CharField(max_length=200, blank=True, null=True)
 
 
