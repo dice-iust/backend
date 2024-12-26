@@ -37,17 +37,75 @@ class UserSerializer(serializers.ModelSerializer):
         return None
 
 
+from django.db.models import Sum
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     phrofile_image = serializers.SerializerMethodField("get_image")
+    sleep_rate = serializers.SerializerMethodField("get_sleep_rate")
+    money_rate = serializers.SerializerMethodField("get_money_rate")
+    full_rate = serializers.SerializerMethodField("get_full_rate")
 
     class Meta:
         model = Users
-        fields = ["user_name", "phrofile_image"]
+        fields = [
+            "user_name",
+            "phrofile_image",
+            "birthDate",
+            "bio",
+            "firstName",
+            "lastName",
+            "sleep_rate",
+            "money_rate",
+            "full_rate",
+        ]
 
     def get_image(self, obj):
         if obj.profilePicture and hasattr(obj.profilePicture, "url"):
             return self.context["request"].build_absolute_uri(obj.profilePicture.url)
         return None
+
+    def get_sleep_rate(self, obj):
+        sleep_rates = TravelUserRateSleep.objects.filter(
+            user_rated__user_name=obj.user_name
+        )
+        if sleep_rates.exists():
+            total_sleep_rate = (
+                sleep_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
+            )
+            return total_sleep_rate / len(sleep_rates)
+        return 0
+
+    def get_money_rate(self, obj):
+        money_rates = TravelUserRateMoney.objects.filter(
+            user_rated__user_name=obj.user_name
+        )
+        if money_rates.exists():
+            total_money_rate = (
+                money_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
+            )
+            return total_money_rate / len(money_rates)
+        return 0
+
+    def get_full_rate(self, obj):
+        money_rates = TravelUserRateMoney.objects.filter(
+            user_rated__user_name=obj.user_name
+        )
+        sleep_rates = TravelUserRateSleep.objects.filter(
+            user_rated__user_name=obj.user_name
+        )
+
+        if money_rates.exists() and sleep_rates.exists():
+            total_money_rate = (
+                money_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
+            )
+            total_sleep_rate = (
+                sleep_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
+            )
+            total_money = total_money_rate / len(money_rates)
+            total_sleep = total_sleep_rate / len(sleep_rates)
+            return (total_money + total_sleep) / 2
+        return 0
 
 
 class EmailSerializer(serializers.ModelSerializer):
@@ -127,7 +185,7 @@ class TravelGroupSerializer(serializers.ModelSerializer):
 
 
 class TravelGroupSerializer(serializers.ModelSerializer):
-    users = UserSerializer(many=True)
+    users = PhotoSerializer(many=True)
     travel_is = TravelSerializer()
 
     class Meta:
