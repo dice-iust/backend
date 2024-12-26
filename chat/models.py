@@ -17,9 +17,8 @@ class ChatMessage(models.Model):
         TravellersGroup, on_delete=models.CASCADE, related_name="messages"
     )
     message = models.TextField()
-    timestamp = models.DateTimeField(null=True, blank=True)
+    timestamp = models.DateTimeField(default=iran_time)
     travel_name = models.CharField(max_length=200, blank=True, null=True)
-
 
     def __str__(self):
         return f"Message from {self.sender} in group {self.travellers_group} at {self.timestamp}"
