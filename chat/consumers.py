@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 import logging
-
+from pytz import timezone as pytz_timezone
 logger = logging.getLogger(__name__)
 
 
@@ -185,6 +185,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.error(f"Error in get_travel_and_group: {e}")
             return None, None
 
+
     @database_sync_to_async
     def get_all_messages(self):
         from .models import ChatMessage
@@ -194,7 +195,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 travellers_group=self.travellers_group, travel_name=self.travel_name
             ).order_by("timestamp")
 
-            domain = "https://triptide.liara.run"
+            iranair_tz = pytz_timezone("Asia/Tehran")
+
             return [
                 {
                     "user_name": msg.sender.user_name,
@@ -204,9 +206,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         if msg.sender.profilePicture
                         else None
                     ),
-                    "time": msg.timestamp.strftime(
+                    "time": msg.timestamp.astimezone(iranair_tz).strftime(
                         "%Y-%m-%d %H:%M:%S"
-                    ),  # Formatting timestamp
+                    ),  # Formatting timestamp in Iranian time
                 }
                 for msg in messages
             ]
