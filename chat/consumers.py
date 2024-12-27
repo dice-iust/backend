@@ -8,6 +8,7 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 import logging
 from pytz import timezone as pytz_timezone
 logger = logging.getLogger(__name__)
+from django.core.cache import cache
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -185,33 +186,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.error(f"Error in get_travel_and_group: {e}")
             return None, None
 
-
     @database_sync_to_async
     def get_all_messages(self):
         from .models import ChatMessage
 
-        try:
-            messages = ChatMessage.objects.filter(
+        cache_key = f"chat_{self.travel_name}_{self.travellers_group.id}_last_100_messages"
+        cached_messages = cache.get(cache_key)
+
+        if cached_messages:
+            return cached_messages
+
+        # If not cached, query the database and cache the result
+        messages = (
+            ChatMessage.objects.filter(
                 travellers_group=self.travellers_group, travel_name=self.travel_name
-            ).order_by("timestamp")
+            )
+            .only("message", "sender", "timestamp")
+            .select_related("sender")
+            .order_by("timestamp")
+        )
 
-            iranair_tz = pytz_timezone("Asia/Tehran")
+        iranair_tz = pytz_timezone("Asia/Tehran")
+        formatted_messages = [
+            {
+                "user_name": msg.sender.user_name,
+                "message": msg.message,
+                "profile": (
+                    f"https://triptide.liara.run{msg.sender.profilePicture.url}"
+                    if msg.sender.profilePicture
+                    else None
+                ),
+                "time": msg.timestamp.astimezone(iranair_tz).strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            for msg in messages
+        ]
 
-            return [
-                {
-                    "user_name": msg.sender.user_name,
-                    "message": msg.message,
-                    "profile": (
-                        f"https://triptide.liara.run{msg.sender.profilePicture.url}"
-                        if msg.sender.profilePicture
-                        else None
-                    ),
-                    "time": msg.timestamp.astimezone(iranair_tz).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),  # Formatting timestamp in Iranian time
-                }
-                for msg in messages
-            ]
-        except Exception as e:
-            logger.error(f"Error retrieving all messages: {e}")
-            return []
+        cache.set(cache_key, formatted_messages, timeout=10)  # Cache for 5 minutes
+        return formatted_messages
