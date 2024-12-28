@@ -126,3 +126,15 @@ class PastPaymentSerializer(serializers.ModelSerializer):
 class MarkAsPaidSerializer(serializers.Serializer):
     expense_id = serializers.IntegerField()
     receiver_username = serializers.CharField(max_length=100)
+
+
+class MarkDebtAsPaidSerializer(serializers.Serializer):    
+    payee = serializers.CharField(max_length=255)  
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    travel_name = serializers.CharField(max_length=200)
+
+class GetPastPaySerializer(serializers.Serializer):
+    Expenses = GetExpenseSerializer()
+    class Meta:
+        model =PastPayment
+        fields = ["Expenses", "amount", "payer", "receiver", "payment_date"]
