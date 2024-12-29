@@ -411,12 +411,18 @@ class MarkAsPaidAPIView(APIView):
             return Response(
                 {"message": f"User {payee_username} does not exist."},tatus=status.HTTP_400_BAD_REQUEST,
             )
+        participants = list(expens.participants.all())
+        if not participants:
+            return Response(
+                "no user",
+                tatus=status.HTTP_400_BAD_REQUEST,
+            )
         past_payment = PastPayment.objects.create(
             payer=user, receiver=payer_user, amount=amount, travel=tg,Expenses=expens1
         )
-        participants = list(expens.participants.all())
-        expens_amont=expens.amount/len(participants)
+        expens_amont = expens.amount / len(participants)
         expens.participants.remove(user)
+        expens.amount-=expens_amont
         expens.save()
         return Response(
             {"message": f"Payment of ${amount} from {user.user_name} to {payee_username} has been recorded."}
