@@ -381,16 +381,16 @@ class TravelGroupView(APIView):
         serializer_future = None
         past_trips = TravellersGroup.objects.filter(
             Q(users=user) | Q(travel_is__admin=user), travel_is__end_date__lt=now()
-        )
+        ).distinct()
 
         current_trips = TravellersGroup.objects.filter(
             Q(users=user) | Q(travel_is__admin=user),
             travel_is__start_date__lte=now(),
             travel_is__end_date__gte=now(),
-        )
+        ).distinct()
         future_trips = TravellersGroup.objects.filter(
             Q(users=user) | Q(travel_is__admin=user), travel_is__start_date__gt=now()
-        )
+        ).distinct()
         if past_trips.exists():
             serializer_past = TravelGroupSerializer(
                 past_trips, many=True, context={"request": self.request}
