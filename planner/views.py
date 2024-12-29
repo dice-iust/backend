@@ -11,13 +11,16 @@ from .serializers import (
     GetExpenseSerializer,
     MarkAsPaidSerializer,
     PastPaymentSerializer,
-    MarkDebtAsPaidSerializer,GetPastPaySerializer
+    MarkDebtAsPaidSerializer,
+    GetPastPaySerializer,
+    GetUserSerializer,
 )
 from Travels.models import TravellersGroup, Travel
 from django.core.files.storage import default_storage
 from django.db.models import F, ExpressionWrapper, DurationField, Q
 User = get_user_model()
 
+from Travels.serializers import PhotoSerializer, TravelGroupSerializer
 
 class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
@@ -147,7 +150,6 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        
         if user not in travel_group.users.all() and user != travel_pay.admin:
             return Response(
                 {
@@ -239,6 +241,7 @@ class CreateExpenseAPIView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+
 class DebtsAPIView(APIView):
     def get(self, request, *args, **kwargs):
         user_token = request.headers.get("Authorization")
@@ -275,26 +278,55 @@ class DebtsAPIView(APIView):
         if travel.admin not in participants_in_travel:
             participants_in_travel.append(travel.admin)
 
-        debts = {participant.user_name: {other.user_name: 0.0 for other in participants_in_travel} for participant in participants_in_travel}
+        debts = {
+            participant.user_name: {
+                other.user_name: 0.0 for other in participants_in_travel
+            }
+            for participant in participants_in_travel
+        }
 
         expenses = ExpensePayment.objects.filter(travel=travel_group)
         for expense in expenses:
             participants = list(expense.participants.all())
             total_participants = len(participants)
-            share_per_user = float(expense.amount) / total_participants if total_participants else 0
+            share_per_user = (
+                float(expense.amount) / total_participants if total_participants else 0
+            )
 
             for participant in participants:
                 if participant != expense.payer:
-                    debts[expense.payer.user_name][participant.user_name] += share_per_user
-                    debts[participant.user_name][expense.payer.user_name] -= share_per_user
+                    debts[expense.payer.user_name][
+                        participant.user_name
+                    ] += share_per_user
+                    debts[participant.user_name][
+                        expense.payer.user_name
+                    ] -= share_per_user
 
-        # Prepare the response data
-        user_debts_to_others = {
-            key: value for key, value in debts[user.user_name].items() if value < 0
-        }
-        others_debt_to_user = {
-            key: value for key, value in debts[user.user_name].items() if value > 0
-        }
+        user_debts_to_others = [
+            {
+                "user": GetUserSerializer(
+                    User.objects.filter(user_name=key).first(),
+
+                    context={"request": self.request},
+                ).data,
+                "amount": value,
+            }
+            for key, value in debts[user.user_name].items()
+            if value < 0
+        ]
+
+        others_debt_to_user = [
+            {
+                "user": GetUserSerializer(
+                    User.objects.filter(user_name=key).first(),
+    
+                    context={"request": self.request},
+                ).data,
+                "amount": value,
+            }
+            for key, value in debts[user.user_name].items()
+            if value > 0
+        ]
 
         has_debt = bool(user_debts_to_others)
         has_credit = bool(others_debt_to_user)
@@ -308,6 +340,7 @@ class DebtsAPIView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 class AllPayView(APIView):
     def get(self, request, *args, **kwargs):
@@ -370,9 +403,17 @@ class MarkAsPaidAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         travel_name=request.query_params.get('travel_name')
         travel_choose=Travel.objects.filter(name=travel_name).first()
+        if not travel_choose:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
         tg=TravellersGroup.objects.filter(travel_is=travel_choose).first()
+        if not tg:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
         pays=PastPayment.objects.filter(Q(travel=tg,payer=user) | Q(travel=tg,receiver=user))
-        serializer = GetPastPaySerializer(pays,many=True).data
+        if not pays:
+            return response("payment not found", status=status.HTTP_404_NOT_FOUND)
+        serializer = GetPastPaySerializer(
+            pays, many=True, context={"request": self.request}
+        ).data
         return Response(
             serializer,
             status=status.HTTP_200_OK,
@@ -400,13 +441,21 @@ class MarkAsPaidAPIView(APIView):
         amount = serializer.validated_data.get("amount")
         travel_name = serializer.validated_data.get("travel_name")
         travel=Travel.objects.filter(name=travel_name).first()
+        if not travel:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
         tg=TravellersGroup.objects.filter(travel_is=travel).first()
+        if not tg:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
         expens = ExpensePayment.objects.filter(
             travel=tg, payer=payer_user, participants=user
         ).first() 
+        if not expens:
+            return Response("this expents not exit", status=status.HTTP_404_NOT_FOUND)
         expens1 = Expense.objects.filter(
             travel=tg, payer=payer_user, participants=user
         ).first()
+        if not expens1:
+            return Response("this expents not exit", status=status.HTTP_404_NOT_FOUND)
         if not payer_user:            
             return Response(
                 {"message": f"User {payee_username} does not exist."},tatus=status.HTTP_400_BAD_REQUEST,
@@ -420,6 +469,8 @@ class MarkAsPaidAPIView(APIView):
         past_payment = PastPayment.objects.create(
             payer=user, receiver=payer_user, amount=amount, travel=tg,Expenses=expens1
         )
+        if not past_payment:
+            return Response("this payment not exit", status=status.HTTP_404_NOT_FOUND)
         expens_amont = expens.amount / len(participants)
         expens.participants.remove(user)
         expens.amount-=expens_amont

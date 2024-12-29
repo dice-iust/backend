@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Expense, Settlement, PastPayment
 from django.contrib.auth import get_user_model
-
+from Travels.serializers import PhotoSerializer,TravelGroupSerializer
 Users = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
@@ -76,9 +76,16 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
         return expense
 class GetUserSerializer(serializers.ModelSerializer):
+    profilePicture = serializers.SerializerMethodField("get_image")
+
     class Meta:
         model = Users
         fields = ["user_name","profilePicture"]
+
+    def get_image(self, obj):
+        if obj.profilePicture and hasattr(obj.profilePicture, "url"):
+            return self.context["request"].build_absolute_uri(obj.profilePicture.url)
+        return None
 
 
 class GetExpenseSerializer(serializers.ModelSerializer):
@@ -86,10 +93,11 @@ class GetExpenseSerializer(serializers.ModelSerializer):
     participants = GetUserSerializer(many=True)
     payer = GetUserSerializer()
     receipt_image = serializers.ImageField(required=False)
-
+    travel=TravelGroupSerializer()
     class Meta:
         model = Expense
         fields = [
+            "travel",
             "amount",
             "created_at",
             "title",
@@ -134,6 +142,8 @@ class MarkDebtAsPaidSerializer(serializers.Serializer):
     travel_name = serializers.CharField(max_length=200)
 
 class GetPastPaySerializer(serializers.Serializer):
+    receiver = GetUserSerializer()
+    payer = GetUserSerializer()
     Expenses = GetExpenseSerializer()
     class Meta:
         model =PastPayment
