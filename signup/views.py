@@ -271,7 +271,7 @@ class EmailVerificationView(APIView):
         return Response(
             {
                 "email": verification.email,
-                "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}veri2.jpg",
+                "photo": f"https://triptide.liara.run{settings.MEDIA_URL}veri2.jpg",
             }
         )
 
