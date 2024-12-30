@@ -6,8 +6,9 @@ from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 import logging
-
+from pytz import timezone as pytz_timezone
 logger = logging.getLogger(__name__)
+from django.core.cache import cache
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -111,22 +112,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, message):
         from .models import ChatMessage
-        from pytz import timezone as pytz_timezone
 
         if not self.user or not self.travellers_group:
             logger.warning("User or travellers group is not set.")
             return None
 
         try:
-            # Use the Iran timezone for the timestamp
-            iran_timezone = pytz_timezone("Asia/Tehran")
-
             # Save the message with the current timestamp
             chat_message = ChatMessage.objects.create(
                 sender=self.user,
                 travellers_group=self.travellers_group,
                 message=message,
-                travel_name=self.travel_name
+                travel_name=self.travel_name,
             )
 
             # Construct the profile URL
@@ -136,22 +133,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 else None
             )
 
-            # Convert timestamp to Iran timezone
-            timestamp = chat_message.timestamp.astimezone(iran_timezone).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            # Format the timestamp
+            timestamp = chat_message.timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
             return {
                 "message": chat_message.message,
                 "user_name": self.user.user_name,
                 "profile": profile_url,
-                "time": timestamp,
+                "time": timestamp,  # Adding timestamp here
             }
 
         except Exception as e:
             logger.error(f"Error saving message: {e}")
             return None
 
+    @database_sync_to_async
+    def get_user_from_token(self, token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            user_id = payload.get("user_id")
+            return get_user_model().objects.filter(user_id=user_id).first()
+        except ExpiredSignatureError:
+            logger.warning("Token has expired.")
+            return None
+        except InvalidTokenError:
+            logger.warning("Invalid token.")
+            return None
+        except Exception as e:
+            logger.error(f"Error decoding token: {e}")
+            return None
 
     @database_sync_to_async
     def get_travel_and_group(self, travel_name, user):
@@ -176,35 +186,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.error(f"Error in get_travel_and_group: {e}")
             return None, None
 
-        
     @database_sync_to_async
     def get_all_messages(self):
         from .models import ChatMessage
-        from pytz import timezone as pytz_timezone
 
-        try:
-            messages = ChatMessage.objects.filter(
+        cache_key = f"chat_{self.travel_name}_{self.travellers_group.id}_last_100_messages"
+        cached_messages = cache.get(cache_key)
+
+        if cached_messages:
+            return cached_messages
+
+        # If not cached, query the database and cache the result
+        messages = (
+            ChatMessage.objects.filter(
                 travellers_group=self.travellers_group, travel_name=self.travel_name
-            ).order_by("timestamp")
+            )
+            .only("message", "sender", "timestamp")
+            .select_related("sender")
+            .order_by("timestamp")
+        )
 
-            # Use the Iran timezone for all message timestamps
-            iran_timezone = pytz_timezone("Asia/Tehran")
+        iranair_tz = pytz_timezone("Asia/Tehran")
+        formatted_messages = [
+            {
+                "user_name": msg.sender.user_name,
+                "message": msg.message,
+                "profile": (
+                    f"https://triptide.liara.run{msg.sender.profilePicture.url}"
+                    if msg.sender.profilePicture
+                    else None
+                ),
+                "time": msg.timestamp.astimezone(iranair_tz).strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            for msg in messages
+        ]
 
-            return [
-                {
-                    "user_name": msg.sender.user_name,
-                    "message": msg.message,
-                    "profile": (
-                        f"https://triptide.liara.run{msg.sender.profilePicture.url}"
-                        if msg.sender.profilePicture
-                        else None
-                    ),
-                    "time": msg.timestamp.astimezone(iran_timezone).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                }
-                for msg in messages
-            ]
-        except Exception as e:
-            logger.error(f"Error retrieving all messages: {e}")
-            return []
+        cache.set(cache_key, formatted_messages, timeout=10)  # Cache for 5 minutes
+        return formatted_messages

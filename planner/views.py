@@ -5,18 +5,22 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from .models import Expense, Settlement
+from .models import Expense, Settlement, PastPayment, ExpensePayment
 from .serializers import (
     ExpenseSerializer,
     GetExpenseSerializer,
     MarkAsPaidSerializer,
     PastPaymentSerializer,
+    MarkDebtAsPaidSerializer,
+    GetPastPaySerializer,
+    GetUserSerializer,
 )
 from Travels.models import TravellersGroup, Travel
 from django.core.files.storage import default_storage
-
+from django.db.models import F, ExpressionWrapper, DurationField, Q
 User = get_user_model()
 
+from Travels.serializers import PhotoSerializer, TravelGroupSerializer
 
 class CreateExpenseAPIView(APIView):
     serializer_class = ExpenseSerializer
@@ -146,7 +150,6 @@ class CreateExpenseAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        
         if user not in travel_group.users.all() and user != travel_pay.admin:
             return Response(
                 {
@@ -213,8 +216,10 @@ class CreateExpenseAPIView(APIView):
         if serializer.is_valid():
             expense = serializer.save(travel=travel_group)
             expense.participants.set(participants)
-
-        
+            e=ExpensePayment.objects.create(travel=travel_group,
+            amount=expense.amount,payer=expense.payer)
+            e.participants.set(participants)
+            e.save()
             if "receipt_image" in request.data:
                 expense.receipt_image = request.data.get("receipt_image")
                 expense.save()
@@ -280,7 +285,7 @@ class DebtsAPIView(APIView):
             for participant in participants_in_travel
         }
 
-        expenses = Expense.objects.filter(travel=travel_group)
+        expenses = ExpensePayment.objects.filter(travel=travel_group)
         for expense in expenses:
             participants = list(expense.participants.all())
             total_participants = len(participants)
@@ -297,12 +302,31 @@ class DebtsAPIView(APIView):
                         expense.payer.user_name
                     ] -= share_per_user
 
-        user_debts_to_others = {
-            key: value for key, value in debts[user.user_name].items() if value < 0
-        }
-        others_debt_to_user = {
-            key: value for key, value in debts[user.user_name].items() if value > 0
-        }
+        user_debts_to_others = [
+            {
+                "user": GetUserSerializer(
+                    User.objects.filter(user_name=key).first(),
+
+                    context={"request": self.request},
+                ).data,
+                "amount": value,
+            }
+            for key, value in debts[user.user_name].items()
+            if value < 0
+        ]
+
+        others_debt_to_user = [
+            {
+                "user": GetUserSerializer(
+                    User.objects.filter(user_name=key).first(),
+    
+                    context={"request": self.request},
+                ).data,
+                "amount": value,
+            }
+            for key, value in debts[user.user_name].items()
+            if value > 0
+        ]
 
         has_debt = bool(user_debts_to_others)
         has_credit = bool(others_debt_to_user)
@@ -359,13 +383,13 @@ class AllPayView(APIView):
         return Response({"pays": serializer.data}, status=status.HTTP_200_OK)
 
 
-class MarkAsPaidAPIView(APIView):
-    def post(self, request):
-        token = request.headers.get("Authorization")
-        if not token:
-            raise AuthenticationFailed("No token provided.")
+class MarkAsPaidAPIView(APIView):   
+    def get(self, request):
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Token has expired.")
         except jwt.InvalidTokenError:
@@ -374,128 +398,84 @@ class MarkAsPaidAPIView(APIView):
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             raise AuthenticationFailed("User not found.")
-
-        expense = (
-            Expense.objects.filter(participants=user, is_paid=False)
-            .order_by("-created_at")
-            .first()
-        )
-
-        if not expense:
-            return Response(
-                {"error": "No unpaid expenses found for this user."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        expense.is_paid = True
-        expense.save()
-
-        return Response(
-            {"message": "Expense marked as paid successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-
-class MarkAsPaidAPIView(APIView):
-    def post(self, request):
-        # دریافت توکن از هدر درخواست
-        token = request.headers.get("Authorization")
-        if not token:
-            return Response(
-                {"error": "No token provided."}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # دیکد کردن توکن و دریافت اطلاعات کاربر
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return Response(
-                {"error": "Token has expired."}, status=status.HTTP_400_BAD_REQUEST
-            )
-        except jwt.InvalidTokenError:
-            return Response(
-                {"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # پیدا کردن کاربر با استفاده از user_id در توکن
-        user = User.objects.filter(id=payload["user_id"]).first()
-        if not user:
-            return Response(
-                {"error": "User not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        # سریالایزر برای گرفتن داده‌های درخواست
-        serializer = MarkAsPaidSerializer(data=request.data)
-        if serializer.is_valid():
-            expense_id = serializer.validated_data.get("expense_id")
-            receiver_username = serializer.validated_data.get("receiver_username")
-        else:
+        serializer = MarkDebtAsPaidSerializer(data=request.data)
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # پیدا کردن دریافت‌کننده با یوزرنیم
-        try:
-            receiver = User.objects.get(username=receiver_username)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "Receiver user not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        # پیدا کردن هزینه‌ای که باید به‌عنوان پرداخت‌شده علامت‌گذاری شود
-        try:
-            expense = Expense.objects.get(id=expense_id, is_paid=False)
-        except Expense.DoesNotExist:
-            return Response(
-                {"error": "Expense not found or already paid."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        # محاسبه سهم پرداخت هر نفر
-        split_amount = expense.calculate_split()
-
-        # بررسی اینکه آیا کاربر جزو شرکت‌کنندگان در هزینه است
-        if user not in expense.participants.all():
-            return Response(
-                {"error": "User is not a participant in this expense."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # بررسی اینکه آیا دریافت‌کننده جزو شرکت‌کنندگان در هزینه است
-        if receiver not in expense.participants.all():
-            return Response(
-                {"error": "Receiver is not a participant in this expense."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # علامت‌گذاری هزینه به‌عنوان پرداخت‌شده
-        expense.is_paid = True
-        expense.save()
-
-        # ثبت تاریخچه پرداخت‌ها و تسویه‌حساب‌ها
-        with transaction.atomic():
-            # تسویه‌حساب بین کاربر و دریافت‌کننده
-            Settlement.objects.create(
-                payer=user,
-                receiver=receiver,
-                amount=split_amount,
-                travel=expense.travel,
-                is_paid=True,
-            )
-
-            # ثبت پرداخت‌های گذشته برای هر دو طرف (کاربر و دریافت‌کننده)
-            PastPayment.objects.create(
-                user=user,
-                expense=expense,
-                amount=split_amount,
-                description=f"Payment for {expense.title} marked as paid",
-            )
-            PastPayment.objects.create(
-                user=receiver,
-                expense=expense,
-                amount=split_amount,
-                description=f"Payment received for {expense.title}",
-            )
-
+        travel_name=request.query_params.get('travel_name')
+        travel_choose=Travel.objects.filter(name=travel_name).first()
+        if not travel_choose:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
+        tg=TravellersGroup.objects.filter(travel_is=travel_choose).first()
+        if not tg:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
+        pays=PastPayment.objects.filter(Q(travel=tg,payer=user) | Q(travel=tg,receiver=user))
+        if not pays:
+            return response("payment not found", status=status.HTTP_404_NOT_FOUND)
+        serializer = GetPastPaySerializer(
+            pays, many=True, context={"request": self.request}
+        ).data
         return Response(
-            {"message": "Expense marked as paid and past payments recorded."},
+            serializer,
             status=status.HTTP_200_OK,
+        )
+
+    def post(self, request, *args, **kwargs):
+        user_token = request.headers.get("Authorization")
+        if not user_token:            
+            raise AuthenticationFailed("Unauthenticated user.")
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:            
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:            
+            raise AuthenticationFailed("Invalid token.")
+
+        user = User.objects.filter(user_id=payload["user_id"]).first()        
+        if not user:
+            raise AuthenticationFailed("User not found.")
+        serializer = MarkDebtAsPaidSerializer(data=request.data)
+        if not serializer.is_valid():            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        payee_username = serializer.validated_data.get("payee")
+        payer_user=User.objects.filter(user_name=payee_username).first()    
+        amount = serializer.validated_data.get("amount")
+        travel_name = serializer.validated_data.get("travel_name")
+        travel=Travel.objects.filter(name=travel_name).first()
+        if not travel:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
+        tg=TravellersGroup.objects.filter(travel_is=travel).first()
+        if not tg:
+            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
+        expens = ExpensePayment.objects.filter(
+            travel=tg, payer=payer_user, participants=user
+        ).first() 
+        if not expens:
+            return Response("this expents not exit", status=status.HTTP_404_NOT_FOUND)
+        expens1 = Expense.objects.filter(
+            travel=tg, payer=payer_user, participants=user
+        ).first()
+        if not expens1:
+            return Response("this expents not exit", status=status.HTTP_404_NOT_FOUND)
+        if not payer_user:            
+            return Response(
+                {"message": f"User {payee_username} does not exist."},tatus=status.HTTP_400_BAD_REQUEST,
+            )
+        participants = list(expens.participants.all())
+        if not participants:
+            return Response(
+                "no user",
+                tatus=status.HTTP_400_BAD_REQUEST,
+            )
+        past_payment = PastPayment.objects.create(
+            payer=user, receiver=payer_user, amount=amount, travel=tg,Expenses=expens1
+        )
+        if not past_payment:
+            return Response("this payment not exit", status=status.HTTP_404_NOT_FOUND)
+        expens_amont = expens.amount / len(participants)
+        expens.participants.remove(user)
+        expens.amount-=expens_amont
+        expens.save()
+        return Response(
+            {"message": f"Payment of ${amount} from {user.user_name} to {payee_username} has been recorded."}
+            ,status=status.HTTP_200_OK,
         )

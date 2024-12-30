@@ -96,12 +96,10 @@ class profileView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        user_name_show=request.data.get("user_name")
+        user_name_show = request.query_params.get("user_name")
         user_show = user_model.objects.filter(user_name=user_name_show).first()
         if not user_show:
             return Response("this user is not exit.",status=status.HTTP_404_NOT_FOUND)
         serializer=GetProfileSerializer(user_show, context={"request": self.request}).data
         return Response(serializer,status=status.HTTP_200_OK)
         return Response("some error",status=status.HTTP_400_BAD_REQUEST)
-            
-            

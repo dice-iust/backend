@@ -63,6 +63,32 @@ class Expense(models.Model):
         return 0
 
 
+class ExpensePayment(models.Model):
+
+    travel = models.ForeignKey(
+        TravellersGroup,
+        on_delete=models.CASCADE,
+        related_name="expenses_pay",
+        null=True,
+        blank=True,
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    payer = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="payer_expenses_pay", null=True
+    )
+    participants = models.ManyToManyField(User, related_name="participant_expenses_pay")
+
+
+    @property
+    def category_icon(self):
+        return self.CATEGORY_ICONS.get(self.category, "Other.jpg")
+
+    def calculate_split(self):
+        if self.participants.exists():
+            return self.amount / self.participants.count()
+        return 0
+
+
 class Settlement(models.Model):
     payer = models.ForeignKey(
         User, on_delete=models.PROTECT, related_name="payer_settlements"
@@ -84,16 +110,19 @@ class Settlement(models.Model):
     is_paid = models.BooleanField(default=False)
 
 
-class PastPayment(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="past_payments"
+class PastPayment(models.Model):    
+    payer = models.ForeignKey(User, related_name="past_payments", on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name="received_payments", on_delete=models.CASCADE,null=True)    
+    amount = models.DecimalField(max_digits=10, decimal_places=2,null=True)
+    payment_date = models.DateTimeField(auto_now_add=True,null=True)
+    travel = models.ForeignKey(
+        TravellersGroup,
+        on_delete=models.CASCADE,
+        related_name="pastpay",
+        null=True,
+        blank=True,
     )
-    expense = models.ForeignKey(
-        Expense, on_delete=models.CASCADE, related_name="past_payments"
-    )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    date = models.DateField(auto_now_add=True)
-    description = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return f"Payment of {self.amount} for {self.expense.title} by {self.user.user_name}"
+    Expenses=models.ForeignKey(Expense,on_delete=models.PROTECT,null=True,
+        blank=True,)
+    def __str__(self):        
+        return f"{self.payer.user_name} paid {self.receiver.user_name} ${self.amount}"
