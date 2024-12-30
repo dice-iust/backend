@@ -21,10 +21,12 @@ from django.conf import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include('signup.urls')),
-    path("", include('Travels.urls')),
-    path("editprofile/",include('editprofile.urls')),path("",include('Landing.urls')),
-    path('planner/', include('planner.urls')),path('',include('profilepage.urls'))
+    path("", include("signup.urls")),
+    path("", include("Travels.urls")),
+    path("editprofile/", include("editprofile.urls")),
+    path("", include("Landing.urls")),
+    path("planner/", include("planner.urls")),
+    path("", include("profilepage.urls")),path("",include("chat.urls")),
 ]
 
 if settings.DEBUG:

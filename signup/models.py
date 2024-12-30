@@ -34,17 +34,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     firstName = models.CharField(max_length=50, blank=True, null=True)
     lastName = models.CharField(max_length=50, blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
-    profilePicture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    profilePicture = models.ImageField(
+        upload_to="profile_pictures/",
+        default="profile_pictures/photo_1_2024-11-22_00-36-00.jpg",blank=True
+    )
     gender = models.CharField(max_length=10, choices=(('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')),
                               blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
+    bio = models.TextField(default="Hey! I'm using TripTide.")
     phone = models.CharField(max_length=15, blank=True, null=True)
     birthDate = models.DateField(blank=True, null=True)
     password = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    rate = models.IntegerField(default=0)
+    rate = models.IntegerField(blank=True, null=True, default=0)
     USERNAME_FIELD = 'user_name'
     REQUIRED_FIELDS = ['email']
 

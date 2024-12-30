@@ -1,8 +1,11 @@
 from django.urls import path
-from .views import CreateExpenseAPIView, DebtsAPIView, SettleDebtAPIView
+from .views import CreateExpenseAPIView, DebtsAPIView, AllPayView, MarkAsPaidAPIView
 
 urlpatterns = [
-    path("travels/<int:travel_id>/expenses/", CreateExpenseAPIView.as_view(), name="create-expense"),
-    path("travels/<int:travel_id>/debts/", DebtsAPIView.as_view(), name="view-debts"),
-    path("settle-debt/", SettleDebtAPIView.as_view(), name="settle-debt"),
+    path("travels/expenses/", CreateExpenseAPIView.as_view(), name="create-expense"),
+    path("travels/debts/", DebtsAPIView.as_view(), name="view-debts"),
+    path('allpay/', AllPayView.as_view()),
+    path("travels/mark/paid/", MarkAsPaidAPIView.as_view(), name="mark-as-paid"),
 ]
+
+
