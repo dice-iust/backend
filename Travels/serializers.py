@@ -159,6 +159,7 @@ class TravelGetSerializer(serializers.ModelSerializer):
             "start_place",
             "destination",
             "transportation",
+            "description",
             "mode",
             "description",
             "status",
