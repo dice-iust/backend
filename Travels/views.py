@@ -698,7 +698,10 @@ class UserFullyRateView(APIView):
         total_money=total_money_rate/len(money_rates)
         total_sleep=total_sleep_rate/len(sleep_rates)
         rate=(total_money+total_sleep)/2
-        return Response({"total":rate,"total_money":total_money,"total_sleep":total_sleep})
+        return Response({"total":rate,"total_money":total_money,"total_sleep":total_sleep,
+                "Welltravel": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Welltravel.jpg",
+                "Goodpay": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Goodpay.jpg",
+                "Overall": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Overall.jpg",})
 class AddTravelUserView(APIView):
     serializer_class = TravelPostGroupSerializer
     authentication_classes = [TokenAuthentication]
