@@ -741,7 +741,7 @@ class AddTravelUserView(APIView):
                 return Response(
                     {"detail": "This travel is full.","full":True}, status=status.HTTP_400_BAD_REQUEST
                 )
-            if user != tg.users: 
+            if user == tg.users: 
                 return Response({"user":"this user is in travel.","full":False})
             if travel.status == "Private":
                 key=request.data.get('key')
