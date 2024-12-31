@@ -724,7 +724,7 @@ class AddTravelUserView(APIView):
 
         if not user:
             return Response(
-                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+                {"detail": "User not found.","full":False}, status=status.HTTP_404_NOT_FOUND
             )
 
         serializer = self.serializer_class(data=request.data)
@@ -732,19 +732,21 @@ class AddTravelUserView(APIView):
             travel_name = serializer.validated_data["name"]
 
             travel = Travel.objects.filter(name=travel_name).first()
+            tg = TravellersGroup.objects.filter(travel_is=travel).first()
             if not travel:
                 return Response(
-                    {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
+                    {"detail": "Travel not found.","full":False}, status=status.HTTP_404_NOT_FOUND
+                )           
+            if travel.empty_travellers >= travel.travellers:
+                return Response(
+                    {"detail": "This travel is full.","full":True}, status=status.HTTP_400_BAD_REQUEST
                 )
-
+            if user != tg.users: 
+                return Response({"user":"this user is in travel.","full":False})
             if travel.status == "Private":
                 key=request.data.get('key')
                 if str(travel.key).strip() != str(key).strip():
-                    return Response("your key is not correct",status=status.HTTP_403_FORBIDDEN)
-            if travel.empty_travellers >= travel.travellers:
-                return Response(
-                    {"detail": "This travel is full."}, status=status.HTTP_400_BAD_REQUEST
-                )
+                    return Response({"error":"your key is not correct","full":False},status=status.HTTP_403_FORBIDDEN)
             Requests.objects.create(user_request=user, travel=travel,travel_name=travel.name)
             admin = travel.admin
             email = admin.email
@@ -755,7 +757,7 @@ class AddTravelUserView(APIView):
                 recipient_list=[email],
             )
             return Response(
-                {"detail": "Your request has been sent to the admin."},
+                {"detail": "Your request has been sent to the admin.","full":False},
                 status=status.HTTP_201_CREATED,
             )
 
@@ -839,7 +841,7 @@ class RequestView(APIView):
                     {"detail": "This travel is full."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
+        
             travel.empty_travellers += 1
             travel.save()
 
