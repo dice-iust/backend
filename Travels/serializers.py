@@ -130,6 +130,7 @@ class TravelSerializer(serializers.ModelSerializer):
             "image_url",
             "destination",
             "transportation",
+            "discription",
             "start_place",
             "mode",
             "rate",
