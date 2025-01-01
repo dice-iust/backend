@@ -70,7 +70,7 @@ class TravelViewSpring(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        spring_travel = queryset.filter(start_date__month__in=[4, 5, 6])
+        spring_travel = queryset.filter(start_date__month__in=[3, 4, 5])
         spring_serializer = TravelSerializer(
             spring_travel, many=True, context={"request": self.request}
         )
@@ -88,7 +88,7 @@ class TravelViewWinter(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        winter_travel = queryset.filter(start_date__month__in=[1, 2, 3])
+        winter_travel = queryset.filter(start_date__month__in=[12, 1, 2])
         winter_serializer = TravelSerializer(
             winter_travel, many=True, context={"request": self.request}
         )
@@ -106,7 +106,7 @@ class TravelViewAutumn(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        autumn_travel = queryset.filter(start_date__month__in=[10, 11, 12])
+        autumn_travel = queryset.filter(start_date__month__in=[9, 10, 11])
         autumn_serializer = TravelSerializer(
             autumn_travel, many=True, context={"request": self.request}
         )
@@ -124,7 +124,7 @@ class TravelViewSummer(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        summer_travel = queryset.filter(start_date__month__in=[7, 8, 9])
+        summer_travel = queryset.filter(start_date__month__in=[6, 7, 8])
         summer_serializer = TravelSerializer(
             summer_travel, many=True, context={"request": self.request}
         )
