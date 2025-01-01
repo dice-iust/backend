@@ -391,8 +391,6 @@ class EmailVerificationView(APIView):
         return Response({"seccess": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
 class PasswordResetRequestAPIView(GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
 
@@ -410,9 +408,9 @@ class PasswordResetRequestAPIView(GenericAPIView):
             reset_code = PasswordResetRequest.generate_reset_code()
             reset_request = PasswordResetRequest.objects.create(user=user, reset_code=reset_code)
             send_mail(
-                subject='Password Reset Code',
-                message=f'Your password reset code is: {reset_code}',
-                from_email='from@example.com',
+                subject="Password Reset Code",
+                message=f"Your password reset code is: {reset_code}",
+                from_email="from@example.com",
                 recipient_list=[email],
                 fail_silently=False,
                 html_message=f"""
