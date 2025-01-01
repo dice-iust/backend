@@ -265,7 +265,7 @@ class UserRegistrationAndVerificationAPIView(APIView):
                                     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                                 }}
                                 .header {{
-                                    background-color: #0073e6;
+                                    background-color: #22487a;
                                     color: white;
                                     padding: 20px;
                                     text-align: center;
@@ -278,7 +278,7 @@ class UserRegistrationAndVerificationAPIView(APIView):
                                 .verification-code {{
                                     font-size: 24px;
                                     font-weight: bold;
-                                    color: #0073e6;
+                                    color: #22487a;
                                     text-align: center;
                                     margin: 20px 0;
                                 }}
@@ -316,7 +316,7 @@ class UserRegistrationAndVerificationAPIView(APIView):
                                     <p>The TripTide Team</p>
                                 </div>
                                 <div class="footer">
-                                    <p>&copy; TripTide 2025</p>
+                                    <p>&copy; TripTide Team</p>
                                 </div>
                             </div>
                         </body>
@@ -435,7 +435,7 @@ class PasswordResetRequestAPIView(GenericAPIView):
                                     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                                 }}
                                 .header {{
-                                    background-color: #ff6f61;
+                                    background-color: #22487a;
                                     color: white;
                                     padding: 20px;
                                     text-align: center;
@@ -448,7 +448,7 @@ class PasswordResetRequestAPIView(GenericAPIView):
                                 .reset-code {{
                                     font-size: 24px;
                                     font-weight: bold;
-                                    color: #ff6f61;
+                                    color: #22487a;
                                     text-align: center;
                                     margin: 20px 0;
                                 }}
@@ -482,7 +482,7 @@ class PasswordResetRequestAPIView(GenericAPIView):
                                     <p>Your Support Team</p>
                                 </div>
                                 <div class="footer">
-                                    <p>&copy; 2025 Your Company</p>
+                                    <p>&copy; TripTide Team</p>
                                 </div>
                             </div>
                         </body>

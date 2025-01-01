@@ -780,7 +780,7 @@ class AddTravelUserView(APIView):
                                     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                                 }}
                                 .header {{
-                                    background-color: #0073e6;
+                                    background-color:#22487a;
                                     color: white;
                                     padding: 20px;
                                     text-align: center;
@@ -816,7 +816,7 @@ class AddTravelUserView(APIView):
                                     </p>
                                 </div>
                                 <div class="footer">
-                                    <p>&copy; Travel Management System</p>
+                                    <p>&copy; TripTide Team</p>
                                 </div>
                             </div>
                         </body>
@@ -954,7 +954,7 @@ class RequestView(APIView):
                                     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                                 }}
                                 .header {{
-                                    background-color: #4caf50;
+                                    background-color: #22487a;
                                     color: white;
                                     padding: 20px;
                                     text-align: center;
@@ -990,7 +990,7 @@ class RequestView(APIView):
                                     </p>
                                 </div>
                                 <div class="footer">
-                                    <p>&copy; {travel_name} Team</p>
+                                    <p>&copy; TripTide Team</p>
                                 </div>
                             </div>
                         </body>
