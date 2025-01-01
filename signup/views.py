@@ -230,22 +230,100 @@ class UserRegistrationAndVerificationAPIView(APIView):
             send_mail(
                 subject="Verify Your Account - Your Verification Code",
                 message=f"""
-                Hello {serializer.validated_data["user_name"]},
+                    Hello {serializer.validated_data["user_name"]},
 
-                Thank you for signing up! To complete your registration, please use the following verification code:
+                    Thank you for signing up! To complete your registration, please use the following verification code:
 
-                {verification_code}
+                    {verification_code}
 
-                Please enter this code on the verification page to activate your account.
+                    Please enter this code on the verification page to activate your account.
 
-                If you did not request this email, please ignore it.
+                    If you did not request this email, please ignore it.
 
-                Best regards,  
-                The TripTide Team
+                    Best regards,  
+                    The TripTide Team
                 """,
                 from_email="triiptide@gmail.com",
                 recipient_list=[serializer.validated_data["email"]],
+                html_message=f"""
+                    <html>
+                        <head>
+                            <style>
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    margin: 0;
+                                    padding: 0;
+                                    background-color: #f9f9f9;
+                                }}
+                                .email-container {{
+                                    max-width: 600px;
+                                    margin: 20px auto;
+                                    background: #ffffff;
+                                    border: 1px solid #dddddd;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                                }}
+                                .header {{
+                                    background-color: #0073e6;
+                                    color: white;
+                                    padding: 20px;
+                                    text-align: center;
+                                }}
+                                .content {{
+                                    padding: 20px;
+                                    color: #333333;
+                                    line-height: 1.6;
+                                }}
+                                .verification-code {{
+                                    font-size: 24px;
+                                    font-weight: bold;
+                                    color: #0073e6;
+                                    text-align: center;
+                                    margin: 20px 0;
+                                }}
+                                .footer {{
+                                    text-align: center;
+                                    padding: 10px;
+                                    font-size: 12px;
+                                    color: #888888;
+                                    background-color: #f9f9f9;
+                                    border-top: 1px solid #dddddd;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="email-container">
+                                <div class="header">
+                                    <h1>Verify Your Account</h1>
+                                </div>
+                                <div class="content">
+                                    <p>Hello <strong>{serializer.validated_data["user_name"]}</strong>,</p>
+                                    <p>
+                                        Thank you for signing up! To complete your registration, please use the following 
+                                        verification code:
+                                    </p>
+                                    <div class="verification-code">
+                                        {verification_code}
+                                    </div>
+                                    <p>
+                                        Please enter this code on the verification page to activate your account.
+                                    </p>
+                                    <p>
+                                        If you did not request this email, please ignore it.
+                                    </p>
+                                    <p>Best regards,</p>
+                                    <p>The TripTide Team</p>
+                                </div>
+                                <div class="footer">
+                                    <p>&copy; TripTide 2025</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                """,
             )
+
 
             context = {"email": serializer.validated_data["email"], "token": token}
             return Response(context)
@@ -331,13 +409,85 @@ class PasswordResetRequestAPIView(GenericAPIView):
 
             reset_code = PasswordResetRequest.generate_reset_code()
             reset_request = PasswordResetRequest.objects.create(user=user, reset_code=reset_code)
-
             send_mail(
-                'Password Reset Code',
-                f'Your password reset code is: {reset_code}',
-                'from@example.com',
-                [email],
+                subject='Password Reset Code',
+                message=f'Your password reset code is: {reset_code}',
+                from_email='from@example.com',
+                recipient_list=[email],
                 fail_silently=False,
+                html_message=f"""
+                    <html>
+                        <head>
+                            <style>
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    margin: 0;
+                                    padding: 0;
+                                    background-color: #f9f9f9;
+                                }}
+                                .email-container {{
+                                    max-width: 600px;
+                                    margin: 20px auto;
+                                    background: #ffffff;
+                                    border: 1px solid #dddddd;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                                }}
+                                .header {{
+                                    background-color: #ff6f61;
+                                    color: white;
+                                    padding: 20px;
+                                    text-align: center;
+                                }}
+                                .content {{
+                                    padding: 20px;
+                                    color: #333333;
+                                    line-height: 1.6;
+                                }}
+                                .reset-code {{
+                                    font-size: 24px;
+                                    font-weight: bold;
+                                    color: #ff6f61;
+                                    text-align: center;
+                                    margin: 20px 0;
+                                }}
+                                .footer {{
+                                    text-align: center;
+                                    padding: 10px;
+                                    font-size: 12px;
+                                    color: #888888;
+                                    background-color: #f9f9f9;
+                                    border-top: 1px solid #dddddd;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="email-container">
+                                <div class="header">
+                                    <h1>Password Reset Request</h1>
+                                </div>
+                                <div class="content">
+                                    <p>Hello,</p>
+                                    <p>
+                                        We received a request to reset your password. Please use the following code to reset your password:
+                                    </p>
+                                    <div class="reset-code">
+                                        {reset_code}
+                                    </div>
+                                    <p>
+                                        If you didn’t request this, you can safely ignore this email.
+                                    </p>
+                                    <p>Best regards,</p>
+                                    <p>Your Support Team</p>
+                                </div>
+                                <div class="footer">
+                                    <p>&copy; 2025 Your Company</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                """,
             )
 
             return Response({"message": "A reset code has been sent to your email.", "success": True},

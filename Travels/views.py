@@ -750,12 +750,80 @@ class AddTravelUserView(APIView):
             Requests.objects.create(user_request=user, travel=travel,travel_name=travel.name)
             admin = travel.admin
             email = admin.email
+            from django.core.mail import send_mail
+
             send_mail(
-                subject="Request to join travel",
-                message=f"Hello {admin.user_name},\n\nYou have a new request from {user.user_name} to join the travel group '{travel_name}'.",
+                subject="Request to Join Travel",
+                message=(
+                    f"Hello {admin.user_name},\n\n"
+                    f"You have a new request from {user.user_name} to join the travel group '{travel_name}'."
+                ),
                 from_email="triiptide@gmail.com",
                 recipient_list=[email],
+                html_message=f"""
+                    <html>
+                        <head>
+                            <style>
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    margin: 0;
+                                    padding: 0;
+                                    background-color: #f9f9f9;
+                                }}
+                                .email-container {{
+                                    max-width: 600px;
+                                    margin: 20px auto;
+                                    background: #ffffff;
+                                    border: 1px solid #dddddd;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                                }}
+                                .header {{
+                                    background-color: #0073e6;
+                                    color: white;
+                                    padding: 20px;
+                                    text-align: center;
+                                }}
+                                .content {{
+                                    padding: 20px;
+                                    color: #333333;
+                                    line-height: 1.6;
+                                }}
+                                .footer {{
+                                    text-align: center;
+                                    padding: 10px;
+                                    font-size: 12px;
+                                    color: #888888;
+                                    background-color: #f9f9f9;
+                                    border-top: 1px solid #dddddd;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="email-container">
+                                <div class="header">
+                                    <h1>New Request to Join Travel</h1>
+                                </div>
+                                <div class="content">
+                                    <p>Hello <strong>{admin.user_name}</strong>,</p>
+                                    <p>
+                                        You have a new request from <strong>{user.user_name}</strong> to join the travel group
+                                        <strong>{travel_name}</strong>.
+                                    </p>
+                                    <p>
+                                        Please review the request and take the necessary action.
+                                    </p>
+                                </div>
+                                <div class="footer">
+                                    <p>&copy; Travel Management System</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                """,
             )
+
             return Response(
                 {"detail": "Your request has been sent to the admin.","full":False},
                 status=status.HTTP_201_CREATED,
@@ -858,7 +926,6 @@ class RequestView(APIView):
             ).first()
             if request_record:
                 request_record.delete()
-
             send_mail(
                 subject="Request Approved",
                 message=(
@@ -867,7 +934,70 @@ class RequestView(APIView):
                 ),
                 from_email="triiptide@gmail.com",
                 recipient_list=[user_add.email],
+                html_message=f"""
+                    <html>
+                        <head>
+                            <style>
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    margin: 0;
+                                    padding: 0;
+                                    background-color: #f4f4f9;
+                                }}
+                                .email-container {{
+                                    max-width: 600px;
+                                    margin: 20px auto;
+                                    background: #ffffff;
+                                    border: 1px solid #dddddd;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                                }}
+                                .header {{
+                                    background-color: #4caf50;
+                                    color: white;
+                                    padding: 20px;
+                                    text-align: center;
+                                }}
+                                .content {{
+                                    padding: 20px;
+                                    color: #333333;
+                                    line-height: 1.6;
+                                }}
+                                .footer {{
+                                    text-align: center;
+                                    padding: 10px;
+                                    font-size: 12px;
+                                    color: #888888;
+                                    background-color: #f4f4f9;
+                                    border-top: 1px solid #dddddd;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="email-container">
+                                <div class="header">
+                                    <h1>Request Approved</h1>
+                                </div>
+                                <div class="content">
+                                    <p>Hello <strong>{user_add.user_name}</strong>,</p>
+                                    <p>
+                                        Congratulations! You have been accepted into the travel group 
+                                        <strong>{travel_name}</strong>.
+                                    </p>
+                                    <p>
+                                        We are excited to have you join us and hope you have an amazing journey!
+                                    </p>
+                                </div>
+                                <div class="footer">
+                                    <p>&copy; {travel_name} Team</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                """,
             )
+
 
             return Response(
                 {"detail": "User added to the group."}, status=status.HTTP_200_OK
