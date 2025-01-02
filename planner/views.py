@@ -398,9 +398,6 @@ class MarkAsPaidAPIView(APIView):
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             raise AuthenticationFailed("User not found.")
-        serializer = MarkDebtAsPaidSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         travel_name=request.query_params.get('travel_name')
         travel_choose=Travel.objects.filter(name=travel_name).first()
         if not travel_choose:
