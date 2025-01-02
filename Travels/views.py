@@ -70,7 +70,7 @@ class TravelViewSpring(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        spring_travel = queryset.filter(start_date__month__in=[4, 5, 6])
+        spring_travel = queryset.filter(start_date__month__in=[1, 2, 3])
         spring_serializer = TravelSerializer(
             spring_travel, many=True, context={"request": self.request}
         )
@@ -88,7 +88,7 @@ class TravelViewWinter(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        winter_travel = queryset.filter(start_date__month__in=[1, 2, 3])
+        winter_travel = queryset.filter(start_date__month__in=[10, 11, 12])
         winter_serializer = TravelSerializer(
             winter_travel, many=True, context={"request": self.request}
         )
@@ -106,7 +106,7 @@ class TravelViewAutumn(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        autumn_travel = queryset.filter(start_date__month__in=[10, 11, 12])
+        autumn_travel = queryset.filter(start_date__month__in=[7, 8, 9])
         autumn_serializer = TravelSerializer(
             autumn_travel, many=True,context={"request": self.request}
         )
@@ -124,7 +124,7 @@ class TravelViewSummer(ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = Travel.objects.all()
-        summer_travel = queryset.filter(start_date__month__in=[7, 8, 9])
+        summer_travel = queryset.filter(start_date__month__in=[4, 5, 6])
         summer_serializer = TravelSerializer(
             summer_travel, many=True, context={"request": self.request}
         )
@@ -381,16 +381,16 @@ class TravelGroupView(APIView):
         serializer_future = None
         past_trips = TravellersGroup.objects.filter(
             Q(users=user) | Q(travel_is__admin=user), travel_is__end_date__lt=now()
-        ).distinct()
+        )
 
         current_trips = TravellersGroup.objects.filter(
             Q(users=user) | Q(travel_is__admin=user),
             travel_is__start_date__lte=now(),
             travel_is__end_date__gte=now(),
-        ).distinct()
+        )
         future_trips = TravellersGroup.objects.filter(
             Q(users=user) | Q(travel_is__admin=user), travel_is__start_date__gt=now()
-        ).distinct()
+        )
         if past_trips.exists():
             serializer_past = TravelGroupSerializer(
                 past_trips, many=True, context={"request": self.request}
@@ -698,10 +698,7 @@ class UserFullyRateView(APIView):
         total_money=total_money_rate/len(money_rates)
         total_sleep=total_sleep_rate/len(sleep_rates)
         rate=(total_money+total_sleep)/2
-        return Response({"total":rate,"total_money":total_money,"total_sleep":total_sleep,
-                "Welltravel": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Welltravel.jpg",
-                "Goodpay": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Goodpay.jpg",
-                "Overall": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Overall.jpg",})
+        return Response({"total":rate,"total_money":total_money,"total_sleep":total_sleep})
 class AddTravelUserView(APIView):
     serializer_class = TravelPostGroupSerializer
     authentication_classes = [TokenAuthentication]
@@ -724,7 +721,7 @@ class AddTravelUserView(APIView):
 
         if not user:
             return Response(
-                {"detail": "User not found.","full":False}, status=status.HTTP_404_NOT_FOUND
+                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
         serializer = self.serializer_class(data=request.data)
@@ -732,100 +729,30 @@ class AddTravelUserView(APIView):
             travel_name = serializer.validated_data["name"]
 
             travel = Travel.objects.filter(name=travel_name).first()
-            tg = TravellersGroup.objects.filter(travel_is=travel).first()
             if not travel:
                 return Response(
-                    {"detail": "Travel not found.","full":False}, status=status.HTTP_404_NOT_FOUND
-                )           
-            if travel.empty_travellers >= travel.travellers:
-                return Response(
-                    {"detail": "This travel is full.","full":True}, status=status.HTTP_400_BAD_REQUEST
+                    {"detail": "Travel not found."}, status=status.HTTP_404_NOT_FOUND
                 )
-            if user == tg.users: 
-                return Response({"user":"this user is in travel.","full":False})
+
             if travel.status == "Private":
                 key=request.data.get('key')
                 if str(travel.key).strip() != str(key).strip():
-                    return Response({"error":"your key is not correct","full":False},status=status.HTTP_403_FORBIDDEN)
+                    return Response("your key is not correct",status=status.HTTP_403_FORBIDDEN)
+            if travel.empty_travellers >= travel.travellers:
+                return Response(
+                    {"detail": "This travel is full."}, status=status.HTTP_400_BAD_REQUEST
+                )
             Requests.objects.create(user_request=user, travel=travel,travel_name=travel.name)
             admin = travel.admin
             email = admin.email
-            from django.core.mail import send_mail
-
             send_mail(
-                subject="Request to Join Travel",
-                message=(
-                    f"Hello {admin.user_name},\n\n"
-                    f"You have a new request from {user.user_name} to join the travel group '{travel_name}'."
-                ),
+                subject="Request to join travel",
+                message=f"Hello {admin.user_name},\n\nYou have a new request from {user.user_name} to join the travel group '{travel_name}'.",
                 from_email="triiptide@gmail.com",
                 recipient_list=[email],
-                html_message=f"""
-                    <html>
-                        <head>
-                            <style>
-                                body {{
-                                    font-family: Arial, sans-serif;
-                                    margin: 0;
-                                    padding: 0;
-                                    background-color: #f9f9f9;
-                                }}
-                                .email-container {{
-                                    max-width: 600px;
-                                    margin: 20px auto;
-                                    background: #ffffff;
-                                    border: 1px solid #dddddd;
-                                    border-radius: 8px;
-                                    overflow: hidden;
-                                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                                }}
-                                .header {{
-                                    background-color:#22487a;
-                                    color: white;
-                                    padding: 20px;
-                                    text-align: center;
-                                }}
-                                .content {{
-                                    padding: 20px;
-                                    color: #333333;
-                                    line-height: 1.6;
-                                }}
-                                .footer {{
-                                    text-align: center;
-                                    padding: 10px;
-                                    font-size: 12px;
-                                    color: #888888;
-                                    background-color: #f9f9f9;
-                                    border-top: 1px solid #dddddd;
-                                }}
-                            </style>
-                        </head>
-                        <body>
-                            <div class="email-container">
-                                <div class="header">
-                                    <h1>New Request to Join Travel</h1>
-                                </div>
-                                <div class="content">
-                                    <p>Hello <strong>{admin.user_name}</strong>,</p>
-                                    <p>
-                                        You have a new request from <strong>{user.user_name}</strong> to join the travel group
-                                        <strong>{travel_name}</strong>.
-                                    </p>
-                                    <p>
-                                        Please review the request and take the necessary action.
-                                    </p>
-                                </div>
-                                <div class="footer">
-                                    <p>&copy; TripTide Team</p>
-                                </div>
-                            </div>
-                        </body>
-                    </html>
-                """,
             )
-
             return Response(
-                {"detail": "Your request has been sent to the admin.","full":False},
+                {"detail": "Your request has been sent to the admin."},
                 status=status.HTTP_201_CREATED,
             )
 
@@ -909,7 +836,7 @@ class RequestView(APIView):
                     {"detail": "This travel is full."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        
+
             travel.empty_travellers += 1
             travel.save()
 
@@ -926,6 +853,7 @@ class RequestView(APIView):
             ).first()
             if request_record:
                 request_record.delete()
+
             send_mail(
                 subject="Request Approved",
                 message=(
@@ -934,70 +862,7 @@ class RequestView(APIView):
                 ),
                 from_email="triiptide@gmail.com",
                 recipient_list=[user_add.email],
-                html_message=f"""
-                    <html>
-                        <head>
-                            <style>
-                                body {{
-                                    font-family: Arial, sans-serif;
-                                    margin: 0;
-                                    padding: 0;
-                                    background-color: #f4f4f9;
-                                }}
-                                .email-container {{
-                                    max-width: 600px;
-                                    margin: 20px auto;
-                                    background: #ffffff;
-                                    border: 1px solid #dddddd;
-                                    border-radius: 8px;
-                                    overflow: hidden;
-                                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                                }}
-                                .header {{
-                                    background-color: #22487a;
-                                    color: white;
-                                    padding: 20px;
-                                    text-align: center;
-                                }}
-                                .content {{
-                                    padding: 20px;
-                                    color: #333333;
-                                    line-height: 1.6;
-                                }}
-                                .footer {{
-                                    text-align: center;
-                                    padding: 10px;
-                                    font-size: 12px;
-                                    color: #888888;
-                                    background-color: #f4f4f9;
-                                    border-top: 1px solid #dddddd;
-                                }}
-                            </style>
-                        </head>
-                        <body>
-                            <div class="email-container">
-                                <div class="header">
-                                    <h1>Request Approved</h1>
-                                </div>
-                                <div class="content">
-                                    <p>Hello <strong>{user_add.user_name}</strong>,</p>
-                                    <p>
-                                        Congratulations! You have been accepted into the travel group 
-                                        <strong>{travel_name}</strong>.
-                                    </p>
-                                    <p>
-                                        We are excited to have you join us and hope you have an amazing journey!
-                                    </p>
-                                </div>
-                                <div class="footer">
-                                    <p>&copy; TripTide Team</p>
-                                </div>
-                            </div>
-                        </body>
-                    </html>
-                """,
             )
-
 
             return Response(
                 {"detail": "User added to the group."}, status=status.HTTP_200_OK
