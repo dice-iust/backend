@@ -407,7 +407,7 @@ class MarkAsPaidAPIView(APIView):
             return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
         pays=PastPayment.objects.filter(Q(travel=tg,payer=user) | Q(travel=tg,receiver=user))
         if not pays:
-            return response("payment not found", status=status.HTTP_404_NOT_FOUND)
+            return Response("payment not found", status=status.HTTP_404_NOT_FOUND)
         serializer = GetPastPaySerializer(
             pays, many=True, context={"request": self.request}
         ).data
