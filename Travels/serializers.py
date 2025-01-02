@@ -130,7 +130,6 @@ class TravelSerializer(serializers.ModelSerializer):
             "image_url",
             "destination",
             "transportation",
-            "description",
             "start_place",
             "mode",
             "rate",
@@ -160,8 +159,8 @@ class TravelGetSerializer(serializers.ModelSerializer):
             "start_place",
             "destination",
             "transportation",
-            "description",
             "mode",
+            "description",
             "status",
             "rate",
         ]
@@ -183,9 +182,6 @@ class TravelGroupSerializer(serializers.ModelSerializer):
         if obj.photo and hasattr(obj.photo, "url"):
             return self.context["request"].build_absolute_uri(obj.photo.url)
         return None
-
-
-
 
 
 class TravelGroupSerializer(serializers.ModelSerializer):
