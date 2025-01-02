@@ -98,7 +98,7 @@ class TravelViewWinter(ListAPIView):
         }
         return Response(context, status=status.HTTP_200_OK)
 
-
+  
 class TravelViewAutumn(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
@@ -108,7 +108,7 @@ class TravelViewAutumn(ListAPIView):
         queryset = Travel.objects.all()
         autumn_travel = queryset.filter(start_date__month__in=[7, 8, 9])
         autumn_serializer = TravelSerializer(
-            autumn_travel, many=True, context={"request": self.request}
+            autumn_travel, many=True,context={"request": self.request}
         )
         context = {
             "Autumn_Trips": autumn_serializer.data,
@@ -116,7 +116,7 @@ class TravelViewAutumn(ListAPIView):
         }
         return Response(context, status=status.HTTP_200_OK)
 
-
+ 
 class TravelViewSummer(ListAPIView):
     serializer_class = TravelSerializer
     queryset = Travel.objects.all()
