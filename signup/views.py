@@ -242,7 +242,8 @@ class UserRegistrationAndVerificationAPIView(APIView):
 
                     Best regards,  
                     The TripTide Team
-                """,
+                """, 
+                
                 from_email="triiptide@gmail.com",
                 recipient_list=[serializer.validated_data["email"]],
                 html_message=f"""
