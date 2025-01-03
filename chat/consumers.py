@@ -9,13 +9,13 @@ import logging
 from pytz import timezone as pytz_timezone
 logger = logging.getLogger(__name__)
 from django.core.cache import cache
-
+from urllib.parse import unquote
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
-            self.travel_name = self.scope["url_route"]["kwargs"]["travel_name"]
-            self.room_group_name = f"travel_{self.travel_name}"
+            self.travel_name = unquote(self.scope["url_route"]["kwargs"]["travel_name"])
+            self.room_group_name = f"travel_{self.travel_name.replace(' ', '_')}"
 
             query_string = self.scope.get("query_string", b"").decode("utf-8")
             token = None
