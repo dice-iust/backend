@@ -329,7 +329,6 @@ class UserRegistrationAndVerificationAPIView(APIView):
                                         If you did not request this email, please ignore it.
                                     </p>
                                     <p>Best regards,</p>
-                                    <p>The TripTide Team</p>
                                 </div>
                                 <div class="footer">
                                     <p>&copy; TripTide Team</p>
@@ -496,7 +495,6 @@ class PasswordResetRequestAPIView(GenericAPIView):
                                         If you didn’t request this, you can safely ignore this email.
                                     </p>
                                     <p>Best regards,</p>
-                                    <p>Your Support Team</p>
                                 </div>
                                 <div class="footer">
                                     <p>&copy; TripTide Team</p>
