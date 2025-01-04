@@ -12,7 +12,6 @@ from django.core.cache import cache
 from urllib.parse import unquote
 import re
 from django.core.cache import cache
-from asgiref.sync import database_sync_to_async
 from pytz import timezone as pytz_timezone
 
 class ChatConsumer(AsyncWebsocketConsumer):
