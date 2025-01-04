@@ -45,6 +45,7 @@ from django.utils.timezone import now
 from django.db.models import Sum
 from django.core.mail import send_mail
 import random
+from signup.models import BlacklistedToken
 
 class AllTravels(generics.ListAPIView):
     serializer_class = TravelSerializer
@@ -318,6 +319,8 @@ class SingleTravelView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         try:
             travel_name=request.query_params.get('travel_name')
             travel_get = Travel.objects.get(name=travel_name)
@@ -376,6 +379,8 @@ class TravelGroupView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         serializer_past = None
         serializer_current = None
         serializer_future = None
@@ -441,6 +446,8 @@ class PostTravelView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         serializer=TravelPostSerializer(data=request.data)
         if serializer.is_valid():
             if not request.data.get('photo'):
@@ -479,7 +486,8 @@ class TravelUserRateView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         money_rates = TravelUserRateMoney.objects.filter(user_rated=user)
         sleep_rates = TravelUserRateSleep.objects.filter(user_rated=user)
 
@@ -551,6 +559,8 @@ class UserSMRateView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         if request.data.get("travel_name"):
             name=request.data.get("travel_name") 
             travel=Travel.objects.filter(name=name).first()
@@ -584,6 +594,8 @@ class UserSMRateView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
             return Response(
@@ -690,7 +702,8 @@ class UserFullyRateView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         money_rates = TravelUserRateMoney.objects.filter(user_rated=user)
         sleep_rates = TravelUserRateSleep.objects.filter(user_rated=user)
         total_money_rate = TravelUserRateMoney.objects.filter(user_rated=user).aggregate(total_rate=Sum('rate'))['total_rate'] or 0
@@ -726,7 +739,8 @@ class AddTravelUserView(APIView):
             return Response(
                 {"detail": "User not found.","full":False}, status=status.HTTP_404_NOT_FOUND
             )
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             travel_name = serializer.validated_data["name"]
@@ -848,7 +862,8 @@ class RequestView(APIView):
         if not user:
             raise AuthenticationFailed("User not found.")
         return user
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
     def get(self, request):
         user_token = request.headers.get("Authorization")
         if not user_token:
@@ -1039,6 +1054,8 @@ class RateByMeView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         travel_name=request.query_params.get("travel_name")
         if not travel_name:
             return Response("travelname is required",status=status.HTTP_400_BAD_REQUEST)
