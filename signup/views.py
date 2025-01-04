@@ -4,6 +4,7 @@ from .serializers import (
     UserLoginSerializer,
     UserViewSerializer,
     EmailVerificationSerializer,
+    BlacklistedToken,
 )
 from rest_framework.generics import GenericAPIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -29,6 +30,8 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 import re
 from .serializers import PasswordResetRequestSerializer, PasswordResetVerifySerializer
 from .models import PasswordResetRequest
+from datetime import datetime, timezone
+
 
 User = get_user_model()
 
@@ -161,14 +164,24 @@ class UserLogoutViewAPI(APIView):
     ]
 
     def get(self, request):
-        user_token = request.COOKIES.get("access_token", None)
-        if user_token:
-            response = Response()
-            response.delete_cookie("access_token")
-            response.data = {"message": "Logged out successfully."}
-            return response
-        response = Response()
-        response.data = {"message": "User is already logged out."}
+        user_token = request.headers.get("Authorization")
+        if not user_token:
+            raise AuthenticationFailed("Unauthenticated user.")
+        try:
+            payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+
+        user = User.objects.filter(user_id=payload["user_id"]).first()
+        if not user:
+            raise AuthenticationFailed("User not found.")
+
+        BlacklistedToken.objects.create(
+            token=user_token, blacklisted_at=datetime.now(timezone.utc)
+        )
+        response = Response({"message": "Logged out successfully."})
         return response
 
 

@@ -149,9 +149,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_user_from_token(self, token):
+        from signup.models import BlacklistedToken
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             user_id = payload.get("user_id")
+            if BlacklistedToken.objects.filter(token=user_token).exists():
+                logger.warning("Token has been invalidated.")
+                return None, None
             return get_user_model().objects.filter(user_id=user_id).first()
         except ExpiredSignatureError:
             logger.warning("Token has expired.")

@@ -19,7 +19,7 @@ from Travels.models import TravellersGroup, Travel
 from django.core.files.storage import default_storage
 from django.db.models import F, ExpressionWrapper, DurationField, Q
 User = get_user_model()
-
+from signup.models import BlacklistedToken
 from Travels.serializers import PhotoSerializer, TravelGroupSerializer
 
 class CreateExpenseAPIView(APIView):
@@ -58,7 +58,8 @@ class CreateExpenseAPIView(APIView):
                 {"detail": "User not found.", "context": context},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         try:
 
             travel_pay = Travel.objects.filter(name=travel_name).first()
@@ -126,7 +127,8 @@ class CreateExpenseAPIView(APIView):
                 {"detail": "User not found.", "context": context},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         try:
             travel_pay = Travel.objects.filter(name=travel_name).first()
             if not travel_pay:
@@ -258,7 +260,8 @@ class DebtsAPIView(APIView):
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             raise AuthenticationFailed("User not found.")
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         try:
             travel_name = request.query_params.get("travel_name")
             travel = Travel.objects.filter(name=travel_name).first()
@@ -361,7 +364,8 @@ class AllPayView(APIView):
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         try:
             travel_pay = Travel.objects.filter(name=travel_name).first()
             travel_group = TravellersGroup.objects.filter(travel_is=travel_pay).first()
@@ -398,6 +402,8 @@ class MarkAsPaidAPIView(APIView):
         user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             raise AuthenticationFailed("User not found.")
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         travel_name=request.query_params.get('travel_name')
         travel_choose=Travel.objects.filter(name=travel_name).first()
         if not travel_choose:
@@ -430,6 +436,8 @@ class MarkAsPaidAPIView(APIView):
         user = User.objects.filter(user_id=payload["user_id"]).first()        
         if not user:
             raise AuthenticationFailed("User not found.")
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
         serializer = MarkDebtAsPaidSerializer(data=request.data)
         if not serializer.is_valid():            
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
