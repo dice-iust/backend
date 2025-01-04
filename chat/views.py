@@ -10,6 +10,7 @@ import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import status
+from signup.models import BlacklistedToken
 
 class ChatMessageView(APIView):
 
@@ -95,6 +96,10 @@ class profileView(APIView):
         if not user:
             return Response(
                 {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        if BlacklistedToken.objects.filter(token=user_token).exists():
+            return Response(
+                "Token has been invalidated.", status=status.HTTP_403_FORBIDDEN
             )
         user_name_show = request.query_params.get("user_name")
         user_show = user_model.objects.filter(user_name=user_name_show).first()

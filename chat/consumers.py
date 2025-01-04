@@ -153,7 +153,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             user_id = payload.get("user_id")
-            if BlacklistedToken.objects.filter(token=user_token).exists():
+            if BlacklistedToken.objects.filter(token=token).exists():
                 logger.warning("Token has been invalidated.")
                 return None, None
             return get_user_model().objects.filter(user_id=user_id).first()
