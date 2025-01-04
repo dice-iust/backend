@@ -10,6 +10,10 @@ from pytz import timezone as pytz_timezone
 logger = logging.getLogger(__name__)
 from django.core.cache import cache
 from urllib.parse import unquote
+import re
+from django.core.cache import cache
+from asgiref.sync import database_sync_to_async
+from pytz import timezone as pytz_timezone
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -190,12 +194,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             logger.error(f"Error in get_travel_and_group: {e}")
             return None, None
 
+
+
     @database_sync_to_async
     def get_all_messages(self):
         from .models import ChatMessage
 
+        # Sanitize the cache key to replace spaces and special characters
         cache_key = f"chat_{self.travel_name}_{self.travellers_group.id}_last_100_messages"
-        cached_messages = cache.get(cache_key)
+        safe_cache_key = re.sub(r"[^A-Za-z0-9_]", "_", cache_key)
+
+        cached_messages = cache.get(safe_cache_key)
 
         if cached_messages:
             return cached_messages
@@ -225,5 +234,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
             for msg in messages
         ]
 
-        cache.set(cache_key, formatted_messages, timeout=10)  # Cache for 5 minutes
+        cache.set(safe_cache_key, formatted_messages, timeout=10)  # Cache for 5 minutes
         return formatted_messages
