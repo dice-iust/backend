@@ -13,8 +13,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import AuthenticationFailed
 import jwt
 from django.conf import settings
-from your_app.models import User, BlacklistedToken
-
+from signup.models import BlacklistedToken
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
