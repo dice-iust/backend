@@ -55,7 +55,7 @@ class profileView(APIView):
             user = user_model.objects.get(user_id=payload["user_id"])
         except user_model.DoesNotExist:
             return None, {"detail": "User not found."}
-        if BlacklistedToken.objects.filter(token=user_token).exists():
+        if BlacklistedToken.objects.filter(token=token).exists():
             return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
 
         return user, None

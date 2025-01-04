@@ -3,7 +3,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.conf import settings
 from signup.models import BlacklistedToken
-
+import jwt
+from django.contrib.auth import get_user_model
+User = get_user_model()
 @api_view(['GET'])
 @permission_classes([AllowAny,])
 def landing_page(request):

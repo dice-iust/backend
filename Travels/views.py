@@ -862,7 +862,7 @@ class RequestView(APIView):
         if not user:
             raise AuthenticationFailed("User not found.")
         return user
-        if BlacklistedToken.objects.filter(token=user_token).exists():
+        if BlacklistedToken.objects.filter(token=token).exists():
             return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
     def get(self, request):
         user_token = request.headers.get("Authorization")
