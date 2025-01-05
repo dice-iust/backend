@@ -704,12 +704,12 @@ class UserFullyRateView(APIView):
             )
         if BlacklistedToken.objects.filter(token=user_token).exists():
             return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
-        money_rates = TravelUserRateMoney.objects.filter(user_rated=user)
-        sleep_rates = TravelUserRateSleep.objects.filter(user_rated=user)
+        money_rates = TravelUserRateMoney.objects.filter(user_rated=user,rate__gt=0)
+        sleep_rates = TravelUserRateSleep.objects.filter(user_rated=user,rate__gt=0)
         total_money_rate = TravelUserRateMoney.objects.filter(user_rated=user).aggregate(total_rate=Sum('rate'))['total_rate'] or 0
         total_sleep_rate = TravelUserRateSleep.objects.filter(user_rated=user).aggregate(total_rate=Sum('rate'))['total_rate'] or 0
-        total_money=total_money_rate/len(money_rates)
-        total_sleep=total_sleep_rate/len(sleep_rates)
+        total_money = total_money_rate / len(money_rates) if len(money_rates) > 0 else 0
+        total_sleep = total_sleep_rate / len(sleep_rates) if len(sleep_rates) > 0 else 0
         rate=(total_money+total_sleep)/2
         return Response({"total":rate,"total_money":total_money,"total_sleep":total_sleep,
                 "Welltravel": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}Welltravel.jpg",

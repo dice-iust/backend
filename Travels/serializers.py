@@ -67,32 +67,36 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_sleep_rate(self, obj):
         sleep_rates = TravelUserRateSleep.objects.filter(
-            user_rated__user_name=obj.user_name
+            user_rated__user_name=obj.user_name, rate__gt=0
         )
         if sleep_rates.exists():
             total_sleep_rate = (
                 sleep_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
             )
-            return total_sleep_rate / len(sleep_rates)
+            total_sleep = (
+                total_sleep_rate / len(sleep_rates) if len(sleep_rates) > 0 else 0
+            )
+            return total_sleep
         return 0
 
     def get_money_rate(self, obj):
         money_rates = TravelUserRateMoney.objects.filter(
-            user_rated__user_name=obj.user_name
+            user_rated__user_name=obj.user_name, rate__gt=0
         )
         if money_rates.exists():
             total_money_rate = (
                 money_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
             )
-            return total_money_rate / len(money_rates)
+            total_money = total_money_rate / len(money_rates) if len(money_rates) > 0 else 0
+            return total_money
         return 0
 
     def get_full_rate(self, obj):
         money_rates = TravelUserRateMoney.objects.filter(
-            user_rated__user_name=obj.user_name
+            user_rated__user_name=obj.user_name,rate__gt=0
         )
         sleep_rates = TravelUserRateSleep.objects.filter(
-            user_rated__user_name=obj.user_name
+            user_rated__user_name=obj.user_name, rate__gt=0
         )
 
         if money_rates.exists() and sleep_rates.exists():
@@ -102,8 +106,8 @@ class PhotoSerializer(serializers.ModelSerializer):
             total_sleep_rate = (
                 sleep_rates.aggregate(total_rate=Sum("rate"))["total_rate"] or 0
             )
-            total_money = total_money_rate / len(money_rates)
-            total_sleep = total_sleep_rate / len(sleep_rates)
+            total_money = total_money_rate / len(money_rates) if len(money_rates) > 0 else 0
+            total_sleep = total_sleep_rate / len(sleep_rates) if len(sleep_rates) > 0 else 0
             return (total_money + total_sleep) / 2
         return 0
 
