@@ -453,12 +453,12 @@ class MarkAsPaidAPIView(APIView):
         if not user:
             raise AuthenticationFailed("User not found.")
         if BlacklistedToken.objects.filter(token=user_token).exists():
-            return Response(
-                "Token has been invalidated.", status=status.HTTP_403_FORBIDDEN
-            )
+            return Response("Token has been invalidated.", status=status.HTTP_403_FORBIDDEN)
+
         serializer = MarkDebtAsPaidSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         payee_username = serializer.validated_data.get("payee")
         payer_user = User.objects.filter(user_name=payee_username).first()
         amount = serializer.validated_data.get("amount")
@@ -466,39 +466,41 @@ class MarkAsPaidAPIView(APIView):
         travel = Travel.objects.filter(name=travel_name).first()
         if not travel:
             return Response("Travel not found", status=status.HTTP_404_NOT_FOUND)
+
         tg = TravellersGroup.objects.filter(travel_is=travel).first()
         if not tg:
             return Response("Travel not found", status=status.HTTP_404_NOT_FOUND)
+
         expens = ExpensePayment.objects.filter(
             travel=tg, payer=payer_user, participants=user
         ).first()
         if not expens:
             return Response("Expense not found", status=status.HTTP_404_NOT_FOUND)
+
         expens1 = Expense.objects.filter(
             travel=tg, payer=payer_user, participants=user
         ).first()
         if not expens1:
             return Response("Expense not found", status=status.HTTP_404_NOT_FOUND)
+
         if not payer_user:
             return Response(
                 {"message": f"User {payee_username} does not exist."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         participants = list(expens.participants.all())
         if not participants:
-            return Response(
-                "No users found",
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response("No users found", status=status.HTTP_400_BAD_REQUEST)
+
         past_payment = PastPayment.objects.create(
             payer=user, receiver=payer_user, amount=amount, travel=tg, Expenses=expens1
         )
         if not past_payment:
             return Response("Payment not found", status=status.HTTP_404_NOT_FOUND)
+
         other_expenses = (
-            ExpensePayment.objects.filter(
-                travel=tg, payer=payer_user, participants=user
-            )
+            ExpensePayment.objects.filter(travel=tg, payer=payer_user, participants=user)
             .annotate(
                 participant_count=Count("participants"),
                 amount_per_participant=ExpressionWrapper(
@@ -507,16 +509,35 @@ class MarkAsPaidAPIView(APIView):
             )
             .order_by("-amount_per_participant")
         )
+
         for other_expense in other_expenses:
-            if amount > 0:
-                expens_amont = other_expense.amount / len(participants)
+            if amount <= 0:
+                break
+
+            participants = list(other_expense.participants.all())
+            if not participants:
+                continue
+
+            expens_amont = other_expense.amount / len(participants)
+            if amount >= expens_amont:
                 other_expense.participants.remove(user)
                 other_expense.amount -= expens_amont
                 amount -= expens_amont
-                expens.save()
+            # else:
+            #     other_expense.participants.remove(user)
+            #     other_expense.amount -= amount
+            #     amount = 0
+            other_expense.save()
+
+        if amount > 0:
+            return Response(
+                "Remaining amount could not be cleared due to insufficient expenses.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         return Response(
             {
-                "message": f"Payment of ${amount} from {user.user_name} to {payee_username} has been recorded."
+                "message": f"Payment of ${serializer.validated_data.get('amount')} from {user.user_name} to {payee_username} has been recorded."
             },
             status=status.HTTP_200_OK,
         )
