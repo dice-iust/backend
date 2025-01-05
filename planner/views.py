@@ -261,7 +261,9 @@ class DebtsAPIView(APIView):
         if not user:
             raise AuthenticationFailed("User not found.")
         if BlacklistedToken.objects.filter(token=user_token).exists():
-            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                "Token has been invalidated.", status=status.HTTP_403_FORBIDDEN
+            )
         try:
             travel_name = request.query_params.get("travel_name")
             travel = Travel.objects.filter(name=travel_name).first()
@@ -309,7 +311,6 @@ class DebtsAPIView(APIView):
             {
                 "user": GetUserSerializer(
                     User.objects.filter(user_name=key).first(),
-
                     context={"request": self.request},
                 ).data,
                 "amount": value,
@@ -322,7 +323,6 @@ class DebtsAPIView(APIView):
             {
                 "user": GetUserSerializer(
                     User.objects.filter(user_name=key).first(),
-    
                     context={"request": self.request},
                 ).data,
                 "amount": value,
@@ -349,12 +349,12 @@ class DebtsAPIView(APIView):
             pays, many=True, context={"request": self.request}
         ).data
         response_data = {
-        "user_debts_to_others": user_debts_to_others,
-        "others_debt_to_user": others_debt_to_user,
-        "has_debt": has_debt,
-        "has_credit": has_credit,
-        "past_serializer":past_serializer,
-        "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}payment.jpg",
+            "user_debts_to_others": user_debts_to_others,
+            "others_debt_to_user": others_debt_to_user,
+            "has_debt": has_debt,
+            "has_credit": has_credit,
+            "past_serializer": past_serializer,
+            "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}payment.jpg",
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -439,63 +439,83 @@ class MarkAsPaidAPIView(APIView):
 
     def post(self, request, *args, **kwargs):
         user_token = request.headers.get("Authorization")
-        if not user_token:            
+        if not user_token:
             raise AuthenticationFailed("Unauthenticated user.")
         try:
             payload = jwt.decode(user_token, settings.SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:            
+        except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Token has expired.")
-        except jwt.InvalidTokenError:            
+        except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
 
-        user = User.objects.filter(user_id=payload["user_id"]).first()        
+        user = User.objects.filter(user_id=payload["user_id"]).first()
         if not user:
             raise AuthenticationFailed("User not found.")
         if BlacklistedToken.objects.filter(token=user_token).exists():
-            return Response("Token has been invalidated.",status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                "Token has been invalidated.", status=status.HTTP_403_FORBIDDEN
+            )
         serializer = MarkDebtAsPaidSerializer(data=request.data)
-        if not serializer.is_valid():            
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         payee_username = serializer.validated_data.get("payee")
-        payer_user=User.objects.filter(user_name=payee_username).first()    
+        payer_user = User.objects.filter(user_name=payee_username).first()
         amount = serializer.validated_data.get("amount")
         travel_name = serializer.validated_data.get("travel_name")
-        travel=Travel.objects.filter(name=travel_name).first()
+        travel = Travel.objects.filter(name=travel_name).first()
         if not travel:
-            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
-        tg=TravellersGroup.objects.filter(travel_is=travel).first()
+            return Response("Travel not found", status=status.HTTP_404_NOT_FOUND)
+        tg = TravellersGroup.objects.filter(travel_is=travel).first()
         if not tg:
-            return Response("travel not found", status=status.HTTP_404_NOT_FOUND)
+            return Response("Travel not found", status=status.HTTP_404_NOT_FOUND)
         expens = ExpensePayment.objects.filter(
             travel=tg, payer=payer_user, participants=user
-        ).first() 
+        ).first()
         if not expens:
-            return Response("this expents not exit", status=status.HTTP_404_NOT_FOUND)
+            return Response("Expense not found", status=status.HTTP_404_NOT_FOUND)
         expens1 = Expense.objects.filter(
             travel=tg, payer=payer_user, participants=user
         ).first()
         if not expens1:
-            return Response("this expents not exit", status=status.HTTP_404_NOT_FOUND)
-        if not payer_user:            
+            return Response("Expense not found", status=status.HTTP_404_NOT_FOUND)
+        if not payer_user:
             return Response(
-                {"message": f"User {payee_username} does not exist."},tatus=status.HTTP_400_BAD_REQUEST,
+                {"message": f"User {payee_username} does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         participants = list(expens.participants.all())
         if not participants:
             return Response(
-                "no user",
-                tatus=status.HTTP_400_BAD_REQUEST,
+                "No users found",
+                status=status.HTTP_400_BAD_REQUEST,
             )
         past_payment = PastPayment.objects.create(
-            payer=user, receiver=payer_user, amount=amount, travel=tg,Expenses=expens1
+            payer=user, receiver=payer_user, amount=amount, travel=tg, Expenses=expens1
         )
         if not past_payment:
-            return Response("this payment not exit", status=status.HTTP_404_NOT_FOUND)
-        expens_amont = expens.amount / len(participants)
-        expens.participants.remove(user)
-        expens.amount-=expens_amont
-        expens.save()
+            return Response("Payment not found", status=status.HTTP_404_NOT_FOUND)
+        other_expenses = (
+            ExpensePayment.objects.filter(
+                travel=tg, payer=payer_user, participants=user
+            )
+            .annotate(
+                participant_count=Count("participants"),
+                amount_per_participant=ExpressionWrapper(
+                    F("amount") / F("participant_count"), output_field=FloatField()
+                ),
+            )
+            .order_by("-amount_per_participant")
+        )
+        for other_expense in other_expenses:
+            if amount > 0:
+                expens_amont = other_expense.amount / len(participants)
+                other_expense.participants.remove(user)
+                other_expense.amount -= expens_amont
+                amount -= expens_amont
+                expens.save()
         return Response(
-            {"message": f"Payment of ${amount} from {user.user_name} to {payee_username} has been recorded."}
-            ,status=status.HTTP_200_OK,
+            {
+                "message": f"Payment of ${amount} from {user.user_name} to {payee_username} has been recorded."
+            },
+            status=status.HTTP_200_OK,
         )
