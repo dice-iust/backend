@@ -333,13 +333,28 @@ class DebtsAPIView(APIView):
 
         has_debt = bool(user_debts_to_others)
         has_credit = bool(others_debt_to_user)
-
+        pays = PastPayment.objects.filter(
+            Q(travel=travel_group, payer=user) | Q(travel=travel_group, receiver=user)
+        )
+        if not pays:
+            response_data = {
+                "user_debts_to_others": user_debts_to_others,
+                "others_debt_to_user": others_debt_to_user,
+                "has_debt": has_debt,
+                "has_credit": has_credit,
+                "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}payment.jpg",
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        past_serializer = GetPastPaySerializer(
+            pays, many=True, context={"request": self.request}
+        ).data
         response_data = {
-            "user_debts_to_others": user_debts_to_others,
-            "others_debt_to_user": others_debt_to_user,
-            "has_debt": has_debt,
-            "has_credit": has_credit,
-            "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}payment.jpg",
+        "user_debts_to_others": user_debts_to_others,
+        "others_debt_to_user": others_debt_to_user,
+        "has_debt": has_debt,
+        "has_credit": has_credit,
+        "past_serializer":past_serializer,
+        "photo": f"https://triptide.pythonanywhere.com{settings.MEDIA_URL}payment.jpg",
         }
 
         return Response(response_data, status=status.HTTP_200_OK)

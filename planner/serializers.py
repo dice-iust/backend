@@ -142,30 +142,15 @@ class MarkDebtAsPaidSerializer(serializers.Serializer):
     travel_name = serializers.CharField(max_length=200)
 
 
-class GetPastPaySerializer(serializers.Serializer):
+class GetPastPaySerializer(serializers.ModelSerializer):
     receiver = GetUserSerializer()
     payer = GetUserSerializer()
-    Expenses = GetExpenseSerializer()
-    amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, source="Expenses.amount"
-    )
-    amount_per_participant = serializers.SerializerMethodField()
-
     class Meta:
         model = PastPayment
         fields = [
             "Expenses",
             "amount",
-            "amount_per_participant",
             "payer",
             "receiver",
             "payment_date",
         ]
-
-    def get_amount_per_participant(self, obj):
-        expenses = obj.Expenses
-        participants = expenses.participants.all()
-        participants_count = participants.count()
-        if participants_count > 0:
-            return expenses.amount / participants_count
-        return expenses.amount  # or 0 if you want to return 0 when no participants
