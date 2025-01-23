@@ -239,12 +239,79 @@ class EmailView(APIView):
 
         if email_serializer.is_valid():
             email_serializer.save()
+
             send_mail(
-            subject="Request to join travel",
-            message=f"hello{email}",
-            from_email="triiptide@gmail.com",
-            recipient_list=[email_serializer['email']],
-        )
+                subject="Welcome",
+                message=(
+                    "Hello,\n\n"
+                    "Thanks for your email."
+                ),
+                from_email="triiptide@gmail.com",
+                recipient_list=[email],
+                html_message=f"""
+                <html>
+                    <head>
+                        <style>
+                            body {{
+                                font-family: Arial, sans-serif;
+                                margin: 0;
+                                padding: 0;
+                                background-color: #f9f9f9;
+                            }}
+                            .email-container {{
+                                max-width: 600px;
+                                margin: 20px auto;
+                                background: #ffffff;
+                                border: 1px solid #dddddd;
+                                border-radius: 8px;
+                                overflow: hidden;
+                                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                            }}
+                            .header {{
+                                background-color: #22487a;
+                                color: white;
+                                padding: 20px;
+                                text-align: center;
+                            }}
+                            .content {{
+                                padding: 20px;
+                                color: #333333;
+                                line-height: 1.6;
+                            }}
+                            .footer {{
+                                text-align: center;
+                                padding: 10px;
+                                font-size: 12px;
+                                color: #888888;
+                                background-color: #f9f9f9;
+                                border-top: 1px solid #dddddd;
+                            }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="email-container">
+                            <div class="header">
+                                <h1>Welcome to TripTide!</h1>
+                            </div>
+                            <div class="content">
+                                <p>Hello,</p>
+                                <p>Thank you for getting in touch with us!</p>
+                                <p>
+                                    We are delighted to inform you that your request to join our travel group has been received.
+                                    Please stay tuned for the latest updates and news about upcoming trips and events. We are excited to have you with us!
+                                </p>
+                                <p>For any further information, do not hesitate to reach out.</p>
+                                <p>Best regards,<br>TripTide Team</p>
+                            </div>
+                            <div class="footer">
+                                <p>&copy; 2023 TripTide Team | Stay connected for more updates and news!</p>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+                """,
+            )
+
             return Response(data=email_serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(email_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

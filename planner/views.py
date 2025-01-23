@@ -499,44 +499,31 @@ class MarkAsPaidAPIView(APIView):
         if not past_payment:
             return Response("Payment not found", status=status.HTTP_404_NOT_FOUND)
 
-        other_expenses = (
-            ExpensePayment.objects.filter(
-                Q(travel=tg, payer=payer_user, participants=user)
-                | Q(travel=tg, payer=user, participants=payer_user)
-            )
-            .annotate(
-                participant_count=Count("participants"),
-                amount_per_participant=ExpressionWrapper(
-                    F("amount") / F("participant_count"), output_field=FloatField()
-                ),
-            )
-            .order_by("-amount_per_participant")
-        )
+
+        other_expenses = ExpensePayment.objects.filter(travel=tg, payer=payer_user, participants=user)
+
+        other_expenses2 = ExpensePayment.objects.filter(travel=tg, payer=user, participants=payer_user)
 
         for other_expense in other_expenses:
-            if amount <= 0:
-                break
-
             participants = list(other_expense.participants.all())
             if not participants:
                 continue
 
-            expens_amont = other_expense.amount / len(participants)
-            # if amount >= expens_amont:
+
+            expense_amount = other_expense.amount / len(participants)
             other_expense.participants.remove(user)
-            other_expense.amount -= expens_amont
-            amount -= expens_amont
-            # else:
-            #     other_expense.participants.remove(user)
-            #     other_expense.amount -= amount
-            #     amount = 0
+            other_expense.amount -= expense_amount
+            amount -= expense_amount
             other_expense.save()
 
-        # if amount > 0:
-        #     return Response(
-        #         "Remaining amount could not be cleared due to insufficient expenses.",
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
+        for other_expense in other_expenses2:
+            participants = list(other_expense.participants.all())
+            if user in participants and payer_user in participants:
+                expense_amount = other_expense.amount / len(participants)
+                other_expense.participants.remove(payer_user)
+                other_expense.amount -= expense_amount
+                amount -= expense_amount
+                other_expense.save()
 
         return Response(
             {
