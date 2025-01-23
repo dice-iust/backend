@@ -500,7 +500,10 @@ class MarkAsPaidAPIView(APIView):
             return Response("Payment not found", status=status.HTTP_404_NOT_FOUND)
 
         other_expenses = (
-            ExpensePayment.objects.filter(travel=tg, payer=payer_user, participants=user)
+            ExpensePayment.objects.filter(
+                Q(travel=tg, payer=payer_user, participants=user)
+                | Q(travel=tg, payer=user, participants=payer_user)
+            )
             .annotate(
                 participant_count=Count("participants"),
                 amount_per_participant=ExpressionWrapper(
