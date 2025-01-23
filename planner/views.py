@@ -523,10 +523,10 @@ class MarkAsPaidAPIView(APIView):
                 other_expense.participants.remove(user)
                 other_expense.amount -= expens_amont
                 amount -= expens_amont
-            # else:
-            #     other_expense.participants.remove(user)
-            #     other_expense.amount -= amount
-            #     amount = 0
+            else:
+                other_expense.participants.remove(user)
+                other_expense.amount -= amount
+                amount = 0
             other_expense.save()
 
         if amount > 0:
