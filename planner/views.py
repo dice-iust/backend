@@ -519,21 +519,21 @@ class MarkAsPaidAPIView(APIView):
                 continue
 
             expens_amont = other_expense.amount / len(participants)
-            if amount >= expens_amont:
-                other_expense.participants.remove(user)
-                other_expense.amount -= expens_amont
-                amount -= expens_amont
-            else:
-                other_expense.participants.remove(user)
-                other_expense.amount -= amount
-                amount = 0
+            # if amount >= expens_amont:
+            other_expense.participants.remove(user)
+            other_expense.amount -= expens_amont
+            amount -= expens_amont
+            # else:
+            #     other_expense.participants.remove(user)
+            #     other_expense.amount -= amount
+            #     amount = 0
             other_expense.save()
 
-        if amount > 0:
-            return Response(
-                "Remaining amount could not be cleared due to insufficient expenses.",
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # if amount > 0:
+        #     return Response(
+        #         "Remaining amount could not be cleared due to insufficient expenses.",
+        #         status=status.HTTP_400_BAD_REQUEST,
+        #     )
 
         return Response(
             {
