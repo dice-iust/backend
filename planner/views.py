@@ -86,10 +86,13 @@ class CreateExpenseAPIView(APIView):
                 user_id=travel_pay.admin.user_id
             )
 
-        valid_participants = [
-            {"user_name": participant.user_name}
-            for participant in participants_in_travel
-        ]
+        unique_users = set()
+        valid_participants = []
+        for participant in participants_in_travel:
+            if participant.user_id not in unique_users:
+                unique_users.add(participant.user_id)
+                valid_participants.append({"user_name": participant.user_name})
+
 
         return Response(
             {"context": context, "valid_participants": valid_participants},
